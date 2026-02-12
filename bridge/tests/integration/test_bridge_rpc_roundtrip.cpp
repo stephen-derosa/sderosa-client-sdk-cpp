@@ -57,8 +57,9 @@ TEST_F(BridgeRpcRoundtripTest, BasicRpcRoundTrip) {
   std::cout << "RPC handler registered, performing call..." << std::endl;
 
   std::string test_payload = "hello from bridge";
-  std::string response =
+  auto response =
       caller.performRpc(receiver_identity, "echo", test_payload, 10.0);
+  EXPECT_TRUE(response.has_value());
 
   size_t expected_checksum = 0;
   for (char c : test_payload) {
@@ -68,10 +69,10 @@ TEST_F(BridgeRpcRoundtripTest, BasicRpcRoundTrip) {
       "echo:" + std::to_string(test_payload.size()) + ":" +
       std::to_string(expected_checksum);
 
-  std::cout << "Response: " << response << std::endl;
+  std::cout << "Response: " << response.value() << std::endl;
   std::cout << "Expected: " << expected_response << std::endl;
 
-  EXPECT_EQ(response, expected_response);
+  EXPECT_EQ(response.value(), expected_response);
   EXPECT_EQ(rpc_calls_received.load(), 1);
 
   receiver.unregisterRpcMethod("echo");
