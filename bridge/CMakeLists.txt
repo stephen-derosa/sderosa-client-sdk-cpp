@@ -11,6 +11,8 @@ add_library(livekit_bridge SHARED
   src/bridge_video_track.cpp
   src/bridge_room_delegate.cpp
   src/bridge_room_delegate.h
+  src/rpc_manager.cpp
+  src/rpc_manager.h
 )
 
 if(WIN32)
