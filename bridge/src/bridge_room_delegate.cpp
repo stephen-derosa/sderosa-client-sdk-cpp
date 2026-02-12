@@ -27,6 +27,8 @@
 #include "livekit/track.h"
 #include "livekit_bridge/livekit_bridge.h"
 
+#include <iostream>
+
 namespace livekit_bridge {
 
 void BridgeRoomDelegate::onTrackSubscribed(
