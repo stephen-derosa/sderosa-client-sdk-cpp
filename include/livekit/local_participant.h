@@ -153,8 +153,7 @@ public:
    * @return Shared pointer to the published data track.
    * @throws std::runtime_error on FFI or publish failure.
    */
-  std::shared_ptr<LocalDataTrack>
-  publishDataTrack(const std::string &name);
+  std::shared_ptr<LocalDataTrack> publishDataTrack(const std::string &name);
 
   /**
    * Unpublish a data track from the room.

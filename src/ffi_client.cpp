@@ -325,7 +325,6 @@ FfiClient::connectAsync(const std::string &url, const std::string &token,
   auto *opts = connect->mutable_options();
   opts->set_auto_subscribe(options.auto_subscribe);
   opts->set_dynacast(options.dynacast);
-
   // --- E2EE / encryption (optional) ---
   if (options.encryption.has_value()) {
     const E2EEOptions &e2ee = *options.encryption;

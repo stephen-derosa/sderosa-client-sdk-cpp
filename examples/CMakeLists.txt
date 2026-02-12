@@ -199,9 +199,33 @@ target_include_directories(BridgeHuman PRIVATE
 )
 target_link_libraries(BridgeHuman PRIVATE livekit_bridge SDL3::SDL3)
 
-# Copy SDL3 shared library to bridge_human_robot example output directories
+# --- bridge_mute_unmute examples (caller uses SDL3 for A/V playback; receiver is headless) ---
+
+add_executable(BridgeMuteCaller
+  bridge_mute_unmute/caller.cpp
+  ${EXAMPLES_COMMON_DIR}/sdl_media.cpp
+  ${EXAMPLES_COMMON_DIR}/sdl_media.h
+)
+target_include_directories(BridgeMuteCaller PRIVATE
+  ${EXAMPLES_PRIVATE_INCLUDE_DIRS}
+  ${EXAMPLES_COMMON_DIR}
+)
+target_link_libraries(BridgeMuteCaller PRIVATE livekit_bridge SDL3::SDL3)
+
+add_executable(BridgeMuteReceiver
+  bridge_mute_unmute/receiver.cpp
+  ${EXAMPLES_COMMON_DIR}/sdl_media.cpp
+  ${EXAMPLES_COMMON_DIR}/sdl_media.h
+)
+target_include_directories(BridgeMuteReceiver PRIVATE
+  ${EXAMPLES_PRIVATE_INCLUDE_DIRS}
+  ${EXAMPLES_COMMON_DIR}
+)
+target_link_libraries(BridgeMuteReceiver PRIVATE livekit_bridge SDL3::SDL3)
+
+# Copy SDL3 shared library to bridge example output directories
 if(UNIX AND NOT APPLE)
-  foreach(_target BridgeRobot BridgeHuman)
+  foreach(_target BridgeRobot BridgeHuman BridgeMuteCaller BridgeMuteReceiver)
     add_custom_command(TARGET ${_target} POST_BUILD
       COMMAND ${CMAKE_COMMAND} -E copy_if_different
               "$<TARGET_FILE:SDL3::SDL3>"
@@ -214,7 +238,7 @@ if(UNIX AND NOT APPLE)
     )
   endforeach()
 else()
-  foreach(_target BridgeRobot BridgeHuman)
+  foreach(_target BridgeRobot BridgeHuman BridgeMuteCaller BridgeMuteReceiver)
     add_custom_command(TARGET ${_target} POST_BUILD
       COMMAND ${CMAKE_COMMAND} -E copy_if_different
               "$<TARGET_FILE:SDL3::SDL3>"
@@ -236,7 +260,7 @@ if(WIN32)
   )
   
   # Copy DLLs to each example's output directory
-  foreach(EXAMPLE SimpleRoom SimpleRpc SimpleRobot SimpleHuman SimpleDataStream BridgeRobot BridgeHuman)
+  foreach(EXAMPLE SimpleRoom SimpleRpc SimpleRobot SimpleHuman SimpleDataStream BridgeRobot BridgeHuman BridgeMuteCaller BridgeMuteReceiver)
     foreach(DLL ${REQUIRED_DLLS})
       add_custom_command(TARGET ${EXAMPLE} POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
@@ -248,8 +272,8 @@ if(WIN32)
     endforeach()
   endforeach()
 
-  # bridge_human_robot examples also need livekit_bridge.dll
-  foreach(EXAMPLE BridgeRobot BridgeHuman)
+  # Bridge examples also need livekit_bridge.dll
+  foreach(EXAMPLE BridgeRobot BridgeHuman BridgeMuteCaller BridgeMuteReceiver)
     add_custom_command(TARGET ${EXAMPLE} POST_BUILD
       COMMAND ${CMAKE_COMMAND} -E copy_if_different
               "$<TARGET_FILE:livekit_bridge>"
@@ -271,7 +295,7 @@ if(UNIX)
   endif()
   
   # Copy shared library to each example's output directory
-  foreach(EXAMPLE SimpleRoom SimpleRpc SimpleRobot SimpleHuman SimpleDataStream BridgeRobot BridgeHuman)
+  foreach(EXAMPLE SimpleRoom SimpleRpc SimpleRobot SimpleHuman SimpleDataStream BridgeRobot BridgeHuman BridgeMuteCaller BridgeMuteReceiver)
     add_custom_command(TARGET ${EXAMPLE} POST_BUILD
       COMMAND ${CMAKE_COMMAND} -E copy_if_different
               "${LIVEKIT_LIB_DIR}/${FFI_SHARED_LIB}"
@@ -281,8 +305,8 @@ if(UNIX)
     )
   endforeach()
 
-  # bridge_human_robot examples also need livekit_bridge shared library
-  foreach(EXAMPLE BridgeRobot BridgeHuman)
+  # Bridge examples also need livekit_bridge shared library
+  foreach(EXAMPLE BridgeRobot BridgeHuman BridgeMuteCaller BridgeMuteReceiver)
     add_custom_command(TARGET ${EXAMPLE} POST_BUILD
       COMMAND ${CMAKE_COMMAND} -E copy_if_different
               "$<TARGET_FILE:livekit_bridge>"
