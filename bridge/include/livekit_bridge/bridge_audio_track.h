@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 LiveKit
+ * Copyright 2026 LiveKit
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -50,6 +50,10 @@ class BridgeAudioTrackTest;
  * After release() (whether called explicitly or by the bridge on
  * disconnect), pushFrame() returns false and mute()/unmute() become
  * no-ops. The track object remains valid but inert.
+ *
+ * All public methods are thread-safe: it is safe to call pushFrame() from
+ * one thread while another calls mute()/unmute()/release(), or to call
+ * pushFrame() concurrently from multiple threads.
  *
  * All public methods are thread-safe: it is safe to call pushFrame() from
  * one thread while another calls mute()/unmute()/release(), or to call
