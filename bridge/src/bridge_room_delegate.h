@@ -43,11 +43,14 @@ public:
   /// LiveKitBridge::onTrackUnsubscribed().
   void onTrackUnsubscribed(livekit::Room &room,
                            const livekit::TrackUnsubscribedEvent &ev) override;
-
+  /// Forwards a data track published event to
+  /// LiveKitBridge::onDataTrackPublished().
   void
   onDataTrackPublished(livekit::Room &room,
                        const livekit::DataTrackPublishedEvent &ev) override;
 
+  /// Forwards a data track unpublished event to
+  /// LiveKitBridge::onDataTrackUnpublished().
   void
   onDataTrackUnpublished(livekit::Room &room,
                          const livekit::DataTrackUnpublishedEvent &ev) override;

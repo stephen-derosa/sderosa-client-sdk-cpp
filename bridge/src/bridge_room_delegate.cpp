@@ -69,6 +69,13 @@ void BridgeRoomDelegate::onDataTrackPublished(
 
 void BridgeRoomDelegate::onDataTrackUnpublished(
     livekit::Room & /*room*/, const livekit::DataTrackUnpublishedEvent &ev) {
+  if (ev.sid.empty()) {
+    LK_LOG_ERROR("[BridgeRoomDelegate] onDataTrackUnpublished called "
+                 "with empty sid.");
+    return;
+  }
+
+  LK_LOG_INFO("[BridgeRoomDelegate] onDataTrackUnpublished: \"{}\"", ev.sid);
   bridge_.onDataTrackUnpublished(ev.sid);
 }
 

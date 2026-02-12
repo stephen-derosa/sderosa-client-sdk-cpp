@@ -138,6 +138,7 @@ void DataTrackSubscription::onFfiEvent(const FfiEvent &event) {
 }
 
 void DataTrackSubscription::pushFrame(DataFrame &&frame) {
+<<<<<<< HEAD
   std::lock_guard<std::mutex> lock(mutex_);
 
   if (closed_ || eof_) {
@@ -163,6 +164,21 @@ void DataTrackSubscription::pushFrame(DataFrame &&frame) {
   }
 
   // notify no matter what since we got a new frame
+=======
+  {
+    std::lock_guard<std::mutex> lock(mutex_);
+
+    if (closed_ || eof_) {
+      return;
+    }
+
+    if (capacity_ > 0 && queue_.size() >= capacity_) {
+      queue_.pop_front();
+    }
+
+    queue_.push_back(std::move(frame));
+  }
+>>>>>>> 1a1b5ac (DataTracks integration through FFI)
   cv_.notify_one();
 }
 
