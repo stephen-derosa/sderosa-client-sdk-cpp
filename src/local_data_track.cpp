@@ -30,7 +30,7 @@ LocalDataTrack::LocalDataTrack(const proto::OwnedLocalDataTrack &owned)
   info_.uses_e2ee = pi.uses_e2ee();
 }
 
-bool LocalDataTrack::tryPush(const DataTrackFrame &frame) {
+bool LocalDataTrack::tryPush(const DataFrame &frame) {
   if (!handle_.valid()) {
     return false;
   }

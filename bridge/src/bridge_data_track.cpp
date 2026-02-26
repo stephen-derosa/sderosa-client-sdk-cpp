@@ -16,7 +16,7 @@
 
 #include "livekit_bridge/bridge_data_track.h"
 
-#include "livekit/data_track_frame.h"
+#include "livekit/data_frame.h"
 #include "livekit/local_data_track.h"
 
 #include <iostream>
@@ -29,30 +29,28 @@ BridgeDataTrack::BridgeDataTrack(std::string name,
 
 BridgeDataTrack::~BridgeDataTrack() { release(); }
 
-bool BridgeDataTrack::pushFrame(
-    const std::vector<std::uint8_t> &payload,
-    std::optional<std::uint64_t> user_timestamp) {
+bool BridgeDataTrack::pushFrame(const std::vector<std::uint8_t> &payload,
+                                std::optional<std::uint64_t> user_timestamp) {
   std::lock_guard<std::mutex> lock(mutex_);
   if (released_ || !track_) {
     return false;
   }
 
-  livekit::DataTrackFrame frame;
+  livekit::DataFrame frame;
   frame.payload = payload;
   frame.user_timestamp = user_timestamp;
 
   return track_->tryPush(frame);
 }
 
-bool BridgeDataTrack::pushFrame(
-    const std::uint8_t *data, std::size_t size,
-    std::optional<std::uint64_t> user_timestamp) {
+bool BridgeDataTrack::pushFrame(const std::uint8_t *data, std::size_t size,
+                                std::optional<std::uint64_t> user_timestamp) {
   std::lock_guard<std::mutex> lock(mutex_);
   if (released_ || !track_) {
     return false;
   }
 
-  livekit::DataTrackFrame frame;
+  livekit::DataFrame frame;
   frame.payload.assign(data, data + size);
   frame.user_timestamp = user_timestamp;
 

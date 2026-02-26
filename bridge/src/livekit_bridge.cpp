@@ -23,7 +23,7 @@
 #include "livekit/audio_frame.h"
 #include "livekit/audio_source.h"
 #include "livekit/audio_stream.h"
-#include "livekit/data_track_frame.h"
+#include "livekit/data_frame.h"
 #include "livekit/data_track_subscription.h"
 #include "livekit/livekit.h"
 #include "livekit/local_audio_track.h"
@@ -652,7 +652,7 @@ std::thread LiveKitBridge::startDataReader(
   reader.thread = std::thread([sub_copy, cb, track_name, identity]() {
     std::cout << "[LiveKitBridge] Data reader thread running for \""
               << track_name << "\" from \"" << identity << "\".\n";
-    livekit::DataTrackFrame frame;
+    livekit::DataFrame frame;
     while (sub_copy->read(frame)) {
       try {
         cb(frame.payload, frame.user_timestamp);

@@ -40,7 +40,7 @@ class OwnedRemoteDataTrack;
  *
  *   // In RoomDelegate::onRemoteDataTrackPublished callback:
  *   auto sub = remoteDataTrack->subscribe();
- *   DataTrackFrame frame;
+ *   DataFrame frame;
  *   while (sub->read(frame)) {
  *     // process frame
  *   }

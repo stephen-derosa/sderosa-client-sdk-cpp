@@ -16,7 +16,7 @@
 
 #pragma once
 
-#include "livekit/data_track_frame.h"
+#include "livekit/data_frame.h"
 #include "livekit/ffi_handle.h"
 
 #include <condition_variable>
@@ -43,7 +43,7 @@ class FfiEvent;
  * Typical usage:
  *
  *   auto sub = remoteDataTrack->subscribe();
- *   DataTrackFrame frame;
+ *   DataFrame frame;
  *   while (sub->read(frame)) {
  *     // process frame.payload
  *   }
@@ -64,13 +64,13 @@ public:
   DataTrackSubscription &operator=(DataTrackSubscription &&) noexcept;
 
   /**
-   * Blocking read: waits until a DataTrackFrame is available, or the
+   * Blocking read: waits until a DataFrame is available, or the
    * subscription reaches EOS / is closed.
    *
    * @param out  On success, filled with the next data frame.
    * @return true if a frame was delivered; false if the subscription ended.
    */
-  bool read(DataTrackFrame &out);
+  bool read(DataFrame &out);
 
   /**
    * End the subscription early.
@@ -88,7 +88,7 @@ private:
   void init(FfiHandle subscription_handle, const Options &options);
 
   void onFfiEvent(const proto::FfiEvent &event);
-  void pushFrame(DataTrackFrame &&frame);
+  void pushFrame(DataFrame &&frame);
   void pushEos();
 
   /** Protects all mutable state below. */
@@ -98,7 +98,7 @@ private:
   std::condition_variable cv_;
 
   /** FIFO of received frames awaiting read(). */
-  std::deque<DataTrackFrame> queue_;
+  std::deque<DataFrame> queue_;
 
   /** Max buffered frames (0 = unbounded). Oldest dropped on overflow. */
   std::size_t capacity_{0};

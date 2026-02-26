@@ -16,7 +16,7 @@
 
 #pragma once
 
-#include "livekit/data_track_frame.h"
+#include "livekit/data_frame.h"
 #include "livekit/data_track_info.h"
 #include "livekit/ffi_handle.h"
 
@@ -41,7 +41,7 @@ class OwnedLocalDataTrack;
  * Typical usage:
  *
  *   auto dt = room->localParticipant()->publishDataTrack("sensor-data");
- *   DataTrackFrame frame;
+ *   DataFrame frame;
  *   frame.payload = {0x01, 0x02, 0x03};
  *   dt->tryPush(frame);
  *   dt->unpublish();
@@ -65,7 +65,7 @@ public:
    * @return true on success, false if the push failed (e.g. back-pressure
    *         or the track has been unpublished).
    */
-  bool tryPush(const DataTrackFrame &frame);
+  bool tryPush(const DataFrame &frame);
 
   /// Whether the track is still published in the room.
   bool isPublished() const;

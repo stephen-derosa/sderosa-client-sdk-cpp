@@ -77,7 +77,7 @@ void DataTrackSubscription::init(FfiHandle subscription_handle,
       [this](const FfiEvent &e) { this->onFfiEvent(e); });
 }
 
-bool DataTrackSubscription::read(DataTrackFrame &out) {
+bool DataTrackSubscription::read(DataFrame &out) {
   std::unique_lock<std::mutex> lock(mutex_);
 
   cv_.wait(lock, [this] { return !queue_.empty() || eof_ || closed_; });
@@ -125,7 +125,7 @@ void DataTrackSubscription::onFfiEvent(const FfiEvent &event) {
 
   if (dts.has_frame_received()) {
     const auto &fr = dts.frame_received().frame();
-    DataTrackFrame frame;
+    DataFrame frame;
     const auto &payload_str = fr.payload();
     frame.payload.assign(
         reinterpret_cast<const std::uint8_t *>(payload_str.data()),
@@ -140,7 +140,7 @@ void DataTrackSubscription::onFfiEvent(const FfiEvent &event) {
   }
 }
 
-void DataTrackSubscription::pushFrame(DataTrackFrame &&frame) {
+void DataTrackSubscription::pushFrame(DataFrame &&frame) {
   {
     std::lock_guard<std::mutex> lock(mutex_);
 
