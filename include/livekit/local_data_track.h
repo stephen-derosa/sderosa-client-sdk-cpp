@@ -56,9 +56,6 @@ public:
   /// Metadata about this data track.
   const DataTrackInfo &info() const noexcept { return info_; }
 
-  /// Raw FFI handle id for internal use.
-  uintptr_t ffi_handle_id() const noexcept { return handle_.get(); }
-
   /**
    * Try to push a frame to all subscribers of this track.
    *
@@ -82,6 +79,9 @@ public:
   explicit LocalDataTrack(const proto::OwnedLocalDataTrack &owned);
 
 private:
+  /// Raw FFI handle id for internal use.
+  uintptr_t ffi_handle_id() const noexcept { return handle_.get(); }
+
   /** RAII wrapper for the Rust-owned FFI resource. */
   FfiHandle handle_;
 
