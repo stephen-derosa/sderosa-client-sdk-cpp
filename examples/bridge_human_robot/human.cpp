@@ -16,15 +16,17 @@
 
 /*
  * Human example -- receives audio and video frames from a robot in a
- * LiveKit room and renders them using SDL3.
+ * LiveKit room and renders them using SDL3. Also receives data track
+ * messages ("robot-status") and prints them to stdout.
  *
- * The robot publishes two video tracks and two audio tracks:
+ * The robot publishes two video tracks, two audio tracks, and a data track:
  *   - "robot-cam"        (SOURCE_CAMERA)            -- webcam or placeholder
  *   - "robot-sim-frame"  (SOURCE_SCREENSHARE)        -- simulated diagnostic
  * frame
  *   - "robot-mic"        (SOURCE_MICROPHONE)          -- real microphone or
  * silence
  *   - "robot-sim-audio"  (SOURCE_SCREENSHARE_AUDIO)   -- simulated siren tone
+ *   - "robot-status"     (data track)                 -- periodic status string
  *
  * Press 'w' to play the webcam feed + real mic, or 's' for sim frame + siren.
  * The selection controls both video and audio simultaneously.
@@ -53,11 +55,13 @@
 
 #include <atomic>
 #include <chrono>
+#include <cstdint>
 #include <csignal>
 #include <cstdlib>
 #include <cstring>
 #include <iostream>
 #include <mutex>
+#include <optional>
 #include <string>
 #include <thread>
 #include <vector>
@@ -258,6 +262,15 @@ int main(int argc, char *argv[]) {
             static_cast<int>(VideoSource::SimFrame)) {
           renderFrame(frame);
         }
+      });
+
+  // ----- set data callback -----
+  bridge.setOnDataFrameCallback(
+      "robot", "robot-status",
+      [](const std::vector<std::uint8_t> &payload,
+         std::optional<std::uint64_t> /*user_timestamp*/) {
+        std::string msg(payload.begin(), payload.end());
+        std::cout << "[human] Data from robot: " << msg << "\n";
       });
 
   // ----- Stdin input thread (for switching when the SDL window is not focused)
