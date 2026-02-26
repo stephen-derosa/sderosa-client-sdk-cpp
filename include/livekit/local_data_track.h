@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 LiveKit
+ * Copyright 2026 LiveKit
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -68,13 +68,11 @@ public:
   /// Whether the track is still published in the room.
   bool isPublished() const;
 
-  /// Construct from an owned proto (called by LocalParticipant).
-  explicit LocalDataTrack(const proto::OwnedLocalDataTrack &owned);
-
 private:
   friend class LocalParticipant;
 
-  /// Raw FFI handle id for internal use.
+  explicit LocalDataTrack(const proto::OwnedLocalDataTrack &owned);
+
   uintptr_t ffi_handle_id() const noexcept { return handle_.get(); }
 
   /** RAII wrapper for the Rust-owned FFI resource. */

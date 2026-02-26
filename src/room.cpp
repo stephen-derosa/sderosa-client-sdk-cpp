@@ -606,7 +606,8 @@ void Room::OnEvent(const FfiEvent &event) {
     }
     case proto::RoomEvent::kRemoteDataTrackPublished: {
       const auto &rdtp = re.remote_data_track_published();
-      auto remote_track = std::make_shared<RemoteDataTrack>(rdtp.track());
+      auto remote_track =
+          std::shared_ptr<RemoteDataTrack>(new RemoteDataTrack(rdtp.track()));
       std::cout << "[Room] RoomEvent::kRemoteDataTrackPublished: \""
                 << remote_track->info().name << "\" from \""
                 << remote_track->publisherIdentity()

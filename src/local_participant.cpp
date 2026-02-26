@@ -237,7 +237,7 @@ LocalParticipant::publishDataTrack(const std::string &name) {
       static_cast<std::uint64_t>(handle_id), name);
 
   proto::OwnedLocalDataTrack owned = fut.get();
-  return std::make_shared<LocalDataTrack>(owned);
+  return std::shared_ptr<LocalDataTrack>(new LocalDataTrack(owned));
 }
 
 void LocalParticipant::unpublishDataTrack(

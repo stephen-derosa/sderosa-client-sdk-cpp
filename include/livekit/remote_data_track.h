@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 LiveKit
+ * Copyright 2026 LiveKit
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -60,9 +60,6 @@ public:
     return publisher_identity_;
   }
 
-  /// Raw FFI handle id for internal use.
-  uintptr_t ffi_handle_id() const noexcept { return handle_.get(); }
-
   /// Whether the track is still published by the remote participant.
   bool isPublished() const;
 
@@ -77,10 +74,12 @@ public:
   std::shared_ptr<DataTrackSubscription>
   subscribe(const DataTrackSubscription::Options &options = {});
 
-  /// Construct from an owned proto (called by Room event handling).
+private:
+  friend class Room;
+
   explicit RemoteDataTrack(const proto::OwnedRemoteDataTrack &owned);
 
-private:
+  uintptr_t ffi_handle_id() const noexcept { return handle_.get(); }
   /** RAII wrapper for the Rust-owned FFI resource. */
   FfiHandle handle_;
 
