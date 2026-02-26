@@ -59,6 +59,10 @@ class BridgeVideoTrackTest;
  * one thread while another calls mute()/unmute()/release(), or to call
  * pushFrame() concurrently from multiple threads.
  *
+ * All public methods are thread-safe: it is safe to call pushFrame() from
+ * one thread while another calls mute()/unmute()/release(), or to call
+ * pushFrame() concurrently from multiple threads.
+ *
  * Usage:
  *   auto cam = bridge.createVideoTrack("cam", 1280, 720,
  *       livekit::TrackSource::SOURCE_CAMERA);
@@ -81,9 +85,8 @@ public:
    *                      (width * height * 4) bytes.
    * @param timestamp_us  Presentation timestamp in microseconds.
    *                      Pass 0 to let the SDK assign one.
-   * @return true if the frame was pushed, false if the track has been released.
    */
-  bool pushFrame(const std::vector<std::uint8_t> &rgba,
+  void pushFrame(const std::vector<std::uint8_t> &rgba,
                  std::int64_t timestamp_us = 0);
 
   /**
@@ -92,9 +95,8 @@ public:
    * @param rgba          Pointer to RGBA pixel data.
    * @param rgba_size     Size of the data buffer in bytes.
    * @param timestamp_us  Presentation timestamp in microseconds.
-   * @return true if the frame was pushed, false if the track has been released.
    */
-  bool pushFrame(const std::uint8_t *rgba, std::size_t rgba_size,
+  void pushFrame(const std::uint8_t *rgba, std::size_t rgba_size,
                  std::int64_t timestamp_us = 0);
 
   /// Mute the video track (stops sending video to the room).
@@ -115,16 +117,11 @@ public:
   /// Whether this track has been released / unpublished.
   bool isReleased() const noexcept;
 
-  /**
-   * Explicitly unpublish the track and release all underlying SDK resources.
-   *
-   * After this call, pushFrame() returns false and mute()/unmute() are
-   * no-ops. Called automatically by the destructor and by
-   * LiveKitBridge::disconnect(). Safe to call multiple times (idempotent).
-   */
+private:
+  /// Explicitly unpublish and release all resources.
+  /// Called automatically by the destructor.
   void release();
 
-private:
   friend class LiveKitBridge;
   friend class test::BridgeVideoTrackTest;
 

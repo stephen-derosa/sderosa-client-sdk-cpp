@@ -44,8 +44,6 @@ class VideoStream;
 class DataTrackSubscription;
 class RemoteDataTrack;
 class Track;
-enum class TrackSource;
-} // namespace livekit
 
 namespace livekit_bridge {
 
@@ -180,6 +178,9 @@ public:
    * @pre The bridge must be connected (via connect()). Calling this on a
    *      disconnected bridge is a programming error.
    *
+   * @pre The bridge must be connected (via connect()). Calling this on a
+   *      disconnected bridge is a programming error.
+   *
    * @param name         Human-readable track name.
    * @param sample_rate  Sample rate in Hz (e.g. 48000).
    * @param num_channels Number of audio channels (1 = mono, 2 = stereo).
@@ -200,6 +201,9 @@ public:
    * The bridge retains a reference to the track internally. To unpublish
    * mid-session, call release() on the returned track. All surviving
    * tracks are automatically released on disconnect().
+   *
+   * @pre The bridge must be connected (via connect()). Calling this on a
+   *      disconnected bridge is a programming error.
    *
    * @pre The bridge must be connected (via connect()). Calling this on a
    *      disconnected bridge is a programming error.
@@ -276,26 +280,6 @@ public:
                                VideoFrameCallback callback);
 
   /**
-   * Clear the audio frame callback for a specific remote participant + track
-   * source.
-   *
-   * If a reader thread is active for this (identity, source), it is
-   * stopped and joined.
-   */
-  void clearOnAudioFrameCallback(const std::string &participant_identity,
-                                 livekit::TrackSource source);
-
-  /**
-   * Clear the video frame callback for a specific remote participant + track
-   * source.
-   *
-   * If a reader thread is active for this (identity, source), it is
-   * stopped and joined.
-   */
-  void clearOnVideoFrameCallback(const std::string &participant_identity,
-                                 livekit::TrackSource source);
-
-  /**
    * Set the callback for data frames from a specific remote participant's
    * data track.
    *
@@ -318,6 +302,25 @@ public:
                               DataFrameCallback callback);
 
   /**
+   * Clear the audio frame callback for a specific remote participant + track
+   * source.
+  void registerOnVideoFrame(const std::string &participant_identity,
+                            livekit::TrackSource source,
+   */
+  void clearOnAudioFrameCallback(const std::string &participant_identity,
+                                 livekit::TrackSource source);
+
+  /**
+   * Clear the video frame callback for a specific remote participant + track
+   * source.
+   *
+   * If a reader thread is active for this (identity, source), it is
+   * stopped and joined.
+   */
+  void clearOnVideoFrameCallback(const std::string &participant_identity,
+                                 livekit::TrackSource source);
+
+  /**
    * Clear the data frame callback for a specific remote participant + track
    * name.
    *
@@ -336,133 +339,129 @@ private:
   struct CallbackKey {
     std::string identity;
     livekit::TrackSource source;
-
     bool operator==(const CallbackKey &o) const;
   };
-
-  struct CallbackKeyHash {
-    std::size_t operator()(const CallbackKey &k) const;
-  };
-
-  /// Active reader thread + stream for an incoming track.
-  struct ActiveReader {
-    std::shared_ptr<livekit::AudioStream> audio_stream;
-    std::shared_ptr<livekit::VideoStream> video_stream;
-    std::thread thread;
-    bool is_audio = false;
-  };
-
-  /**
-   * Composite key for data track callbacks: (participant_identity, track_name).
-   *
-   * Data tracks are identified by name rather than TrackSource because they
-   * don't belong to the standard Source/Publication hierarchy used by
-   * audio/video tracks.
-   */
-  struct DataCallbackKey {
-    /** Remote participant identity string. */
-    std::string identity;
-
-    /** Publisher-assigned data track name. */
-    std::string track_name;
-
-    bool operator==(const DataCallbackKey &o) const;
-  };
-
-  struct DataCallbackKeyHash {
-    std::size_t operator()(const DataCallbackKey &k) const;
-  };
-
-  /** Active reader thread + subscription for an incoming data track. */
-  struct ActiveDataReader {
-    /** The remote track must stay alive for the subscription to receive frames.
-     *  Dropping the RemoteDataTrack handle tells the Rust FFI we no longer care
-     *  about this track, which may cause it to stop forwarding frames. */
-    std::shared_ptr<livekit::RemoteDataTrack> remote_track;
-
-    /** Underlying SDK subscription that delivers frames via read(). */
-    std::shared_ptr<livekit::DataTrackSubscription> subscription;
-
-    /** Background thread running the blocking read loop. */
-    std::thread thread;
-  };
-
-  // Called by BridgeRoomDelegate when a remote track is subscribed
-  void onTrackSubscribed(const std::string &participant_identity,
-                         livekit::TrackSource source,
-                         const std::shared_ptr<livekit::Track> &track);
-
-  /// Called by BridgeRoomDelegate when a remote track is unsubscribed.
-  void onTrackUnsubscribed(const std::string &participant_identity,
-                           livekit::TrackSource source);
-
-  // Called by BridgeRoomDelegate when a remote data track is published.
-  // If a callback is registered for (identity, track_name), starts the data
-  // reader thread (like onTrackSubscribed for audio/video); otherwise stores
-  // the track as pending until setOnDataFrameCallback is called.
-  void
-  onRemoteDataTrackPublished(std::shared_ptr<livekit::RemoteDataTrack> track);
-
-  /// Close the stream and extract the thread for the caller to join
-  /// (caller must hold mutex_)
-  std::thread extractReaderThread(const CallbackKey &key);
-  std::thread extractDataReaderThread(const DataCallbackKey &key);
-
-  /// Start a reader thread for a subscribed track.
-  /// @return The reader thread for this track.
-  /// @pre Caller must hold @c mutex_.
-  std::thread startAudioReader(const CallbackKey &key,
-                               const std::shared_ptr<livekit::Track> &track,
-                               AudioFrameCallback cb);
-  /// @copydoc startAudioReader
-  std::thread startVideoReader(const CallbackKey &key,
-                               const std::shared_ptr<livekit::Track> &track,
-                               VideoFrameCallback cb);
-  std::thread
-  startDataReader(const DataCallbackKey &key,
-                  const std::shared_ptr<livekit::RemoteDataTrack> &track,
-                  DataFrameCallback cb);
-
-  mutable std::mutex mutex_;
-  bool connected_;
-  bool connecting_; // guards against concurrent connect() calls
-  bool sdk_initialized_;
-
-  static constexpr int kMaxActiveReaders = 20;
-
-  std::unique_ptr<livekit::Room> room_;
-  std::unique_ptr<BridgeRoomDelegate> delegate_;
-
-  /// Registered callbacks (may be registered before tracks are subscribed).
-  std::unordered_map<CallbackKey, AudioFrameCallback, CallbackKeyHash>
-      audio_callbacks_;
-  /// @copydoc audio_callbacks_
-  std::unordered_map<CallbackKey, VideoFrameCallback, CallbackKeyHash>
-      video_callbacks_;
-  std::unordered_map<DataCallbackKey, DataFrameCallback, DataCallbackKeyHash>
-      data_callbacks_;
-
-  /// Remote data tracks published before a frame callback was registered;
-  /// when setOnDataFrameCallback is called for a matching key, we start the
-  /// reader and remove the track from here.
-  std::unordered_map<DataCallbackKey, std::shared_ptr<livekit::RemoteDataTrack>,
-                     DataCallbackKeyHash>
-      pending_remote_data_tracks_;
-
-  /// Active reader threads for subscribed audio and video tracks.
-  std::unordered_map<CallbackKey, ActiveReader, CallbackKeyHash>
-      active_av_readers_;
-  /// Active reader threads for subscribed data tracks.
-  std::unordered_map<DataCallbackKey, ActiveDataReader, DataCallbackKeyHash>
-      active_data_readers_;
-
-  /// All tracks created by this bridge. The bridge retains a shared_ptr so
-  /// it can force-release every track on disconnect() before the room is
-  /// destroyed, preventing dangling @c participant_ pointers.
-  std::vector<std::shared_ptr<BridgeAudioTrack>> published_audio_tracks_;
-  /// @copydoc published_audio_tracks_
-  std::vector<std::shared_ptr<BridgeVideoTrack>> published_video_tracks_;
-  std::vector<std::shared_ptr<BridgeDataTrack>> published_data_tracks_;
 };
 
-} // namespace livekit_bridge
+/// Active reader thread + stream for an incoming track.
+struct ActiveReader {
+  std::shared_ptr<livekit::AudioStream> audio_stream;
+  std::shared_ptr<livekit::VideoStream> video_stream;
+  std::thread thread;
+  bool is_audio = false;
+};
+
+/**
+ * Composite key for data track callbacks: (participant_identity, track_name).
+ *
+ * Data tracks are identified by name rather than TrackSource because they
+ * don't belong to the standard Source/Publication hierarchy used by
+ * audio/video tracks.
+ */
+struct DataCallbackKey {
+  /** Remote participant identity string. */
+  std::string identity;
+
+  /** Publisher-assigned data track name. */
+  std::string track_name;
+
+  bool operator==(const DataCallbackKey &o) const;
+};
+
+struct DataCallbackKeyHash {
+  std::size_t operator()(const DataCallbackKey &k) const;
+};
+
+/** Active reader thread + subscription for an incoming data track. */
+struct ActiveDataReader {
+  /** The remote track must stay alive for the subscription to receive frames.
+   *  Dropping the RemoteDataTrack handle tells the Rust FFI we no longer care
+   *  about this track, which may cause it to stop forwarding frames. */
+  std::shared_ptr<livekit::RemoteDataTrack> remote_track;
+
+  /** Underlying SDK subscription that delivers frames via read(). */
+  std::shared_ptr<livekit::DataTrackSubscription> subscription;
+
+  /** Background thread running the blocking read loop. */
+  std::thread thread;
+};
+
+// Called by BridgeRoomDelegate when a remote track is subscribed
+void onTrackSubscribed(const std::string &participant_identity,
+                       livekit::TrackSource source,
+                       const std::shared_ptr<livekit::Track> &track);
+
+/// Called by BridgeRoomDelegate when a remote track is unsubscribed.
+void onTrackUnsubscribed(const std::string &participant_identity,
+                         livekit::TrackSource source);
+
+// Called by BridgeRoomDelegate when a remote data track is published.
+// If a callback is registered for (identity, track_name), starts the data
+// reader thread (like onTrackSubscribed for audio/video); otherwise stores
+// the track as pending until setOnDataFrameCallback is called.
+void onRemoteDataTrackPublished(
+    std::shared_ptr<livekit::RemoteDataTrack> track);
+
+/// Close the stream and extract the thread for the caller to join
+/// (caller must hold mutex_)
+std::thread extractReaderThread(const CallbackKey &key);
+std::thread extractDataReaderThread(const DataCallbackKey &key);
+
+/// Start a reader thread for a subscribed track.
+/// @return The reader thread for this track.
+/// @pre Caller must hold @c mutex_.
+std::thread startAudioReader(const CallbackKey &key,
+                             const std::shared_ptr<livekit::Track> &track,
+                             AudioFrameCallback cb);
+/// @copydoc startAudioReader
+std::thread startVideoReader(const CallbackKey &key,
+                             const std::shared_ptr<livekit::Track> &track,
+                             VideoFrameCallback cb);
+std::thread
+startDataReader(const DataCallbackKey &key,
+                const std::shared_ptr<livekit::RemoteDataTrack> &track,
+                DataFrameCallback cb);
+
+mutable std::mutex mutex_;
+bool connected_;
+bool connecting_; // guards against concurrent connect() calls
+bool sdk_initialized_;
+
+static constexpr int kMaxActiveReaders = 20;
+
+std::unique_ptr<livekit::Room> room_;
+std::unique_ptr<BridgeRoomDelegate> delegate_;
+
+/// Registered callbacks (may be registered before tracks are subscribed).
+std::unordered_map<CallbackKey, AudioFrameCallback, CallbackKeyHash>
+    audio_callbacks_;
+/// @copydoc audio_callbacks_
+std::unordered_map<CallbackKey, VideoFrameCallback, CallbackKeyHash>
+    video_callbacks_;
+std::unordered_map<DataCallbackKey, DataFrameCallback, DataCallbackKeyHash>
+    data_callbacks_;
+
+/// Remote data tracks published before a frame callback was registered;
+/// when setOnDataFrameCallback is called for a matching key, we start the
+/// reader and remove the track from here.
+std::unordered_map<DataCallbackKey, std::shared_ptr<livekit::RemoteDataTrack>,
+                   DataCallbackKeyHash>
+    pending_remote_data_tracks_;
+
+/// Active reader threads for subscribed audio and video tracks.
+std::unordered_map<CallbackKey, ActiveReader, CallbackKeyHash>
+    active_av_readers_;
+/// Active reader threads for subscribed data tracks.
+std::unordered_map<DataCallbackKey, ActiveDataReader, DataCallbackKeyHash>
+    active_data_readers_;
+
+/// All tracks created by this bridge. The bridge retains a shared_ptr so
+/// it can force-release every track on disconnect() before the room is
+/// destroyed, preventing dangling @c participant_ pointers.
+std::vector<std::shared_ptr<BridgeAudioTrack>> published_audio_tracks_;
+/// @copydoc published_audio_tracks_
+std::vector<std::shared_ptr<BridgeVideoTrack>> published_video_tracks_;
+std::vector<std::shared_ptr<BridgeDataTrack>> published_data_tracks_;
+}; // namespace livekit_bridge
+
+} // namespace livekit

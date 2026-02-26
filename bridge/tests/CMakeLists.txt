@@ -83,7 +83,7 @@ if(BRIDGE_TEST_SOURCES)
     ${BRIDGE_TEST_SOURCES}
   )
 
-  target_link_libraries(livekit_bridge_unit_tests
+  target_link_libraries(livekit_bridge_tests
     PRIVATE
       livekit_bridge
       GTest::gtest_main

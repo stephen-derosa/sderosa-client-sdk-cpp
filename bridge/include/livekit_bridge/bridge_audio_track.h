@@ -59,6 +59,10 @@ class BridgeAudioTrackTest;
  * one thread while another calls mute()/unmute()/release(), or to call
  * pushFrame() concurrently from multiple threads.
  *
+ * All public methods are thread-safe: it is safe to call pushFrame() from
+ * one thread while another calls mute()/unmute()/release(), or to call
+ * pushFrame() concurrently from multiple threads.
+ *
  * Usage:
  *   auto mic = bridge.createAudioTrack("mic", 48000, 2,
  *       livekit::TrackSource::SOURCE_MICROPHONE);
@@ -117,16 +121,11 @@ public:
   /// Whether this track has been released / unpublished.
   bool isReleased() const noexcept;
 
-  /**
-   * Explicitly unpublish the track and release all underlying SDK resources.
-   *
-   * After this call, pushFrame() returns false and mute()/unmute() are
-   * no-ops. Called automatically by the destructor and by
-   * LiveKitBridge::disconnect(). Safe to call multiple times (idempotent).
-   */
+private:
+  /// Explicitly unpublish and release all resources.
+  /// Called automatically by the destructor.
   void release();
 
-private:
   friend class LiveKitBridge;
   friend class test::BridgeAudioTrackTest;
 
