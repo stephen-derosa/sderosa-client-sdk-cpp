@@ -240,6 +240,24 @@ LocalParticipant::publishDataTrack(const std::string &name) {
   return std::make_shared<LocalDataTrack>(owned);
 }
 
+void LocalParticipant::unpublishDataTrack(
+    const std::shared_ptr<LocalDataTrack> &track) {
+  if (!track) {
+    return;
+  }
+
+  auto handle_id = track->ffi_handle_id();
+  if (handle_id == 0) {
+    return;
+  }
+
+  proto::FfiRequest req;
+  auto *msg = req.mutable_local_data_track_unpublish();
+  msg->set_track_handle(static_cast<uint64_t>(handle_id));
+
+  (void)FfiClient::instance().sendRequest(req);
+}
+
 std::string LocalParticipant::performRpc(
     const std::string &destination_identity, const std::string &method,
     const std::string &payload, std::optional<double> response_timeout) {

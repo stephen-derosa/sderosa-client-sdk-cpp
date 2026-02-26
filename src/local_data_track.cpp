@@ -62,16 +62,4 @@ bool LocalDataTrack::isPublished() const {
   return resp.local_data_track_is_published().is_published();
 }
 
-void LocalDataTrack::unpublish() {
-  if (!handle_.valid()) {
-    return;
-  }
-
-  proto::FfiRequest req;
-  auto *msg = req.mutable_local_data_track_unpublish();
-  msg->set_track_handle(static_cast<uint64_t>(handle_.get()));
-
-  (void)FfiClient::instance().sendRequest(req);
-}
-
 } // namespace livekit

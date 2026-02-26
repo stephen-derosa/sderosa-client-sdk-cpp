@@ -312,7 +312,7 @@ LiveKitBridge::createDataTrack(const std::string &name) {
             << "(sid=" << track->info().sid << ").\n";
 
   auto bridge_track = std::shared_ptr<BridgeDataTrack>(
-      new BridgeDataTrack(name, std::move(track)));
+      new BridgeDataTrack(name, std::move(track), room_->localParticipant()));
   published_data_tracks_.emplace_back(bridge_track);
   return bridge_track;
 }

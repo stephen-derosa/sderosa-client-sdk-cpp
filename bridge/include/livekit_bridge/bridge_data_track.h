@@ -25,6 +25,7 @@
 
 namespace livekit {
 class LocalDataTrack;
+class LocalParticipant;
 } // namespace livekit
 
 namespace livekit_bridge {
@@ -104,7 +105,8 @@ private:
   friend class test::BridgeDataTrackTest;
 
   BridgeDataTrack(std::string name,
-                  std::shared_ptr<livekit::LocalDataTrack> track);
+                  std::shared_ptr<livekit::LocalDataTrack> track,
+                  livekit::LocalParticipant *participant);
 
   /** Protects released_ and track_ for thread-safe access. */
   mutable std::mutex mutex_;
@@ -117,6 +119,9 @@ private:
 
   /** Underlying SDK data track handle. Nulled on release(). */
   std::shared_ptr<livekit::LocalDataTrack> track_;
+
+  /** Participant that published this track; used for unpublish. Not owned. */
+  livekit::LocalParticipant *participant_ = nullptr;
 };
 
 } // namespace livekit_bridge

@@ -18,14 +18,17 @@
 
 #include "livekit/data_frame.h"
 #include "livekit/local_data_track.h"
+#include "livekit/local_participant.h"
 
 #include <iostream>
 
 namespace livekit_bridge {
 
 BridgeDataTrack::BridgeDataTrack(std::string name,
-                                 std::shared_ptr<livekit::LocalDataTrack> track)
-    : name_(std::move(name)), track_(std::move(track)) {}
+                                 std::shared_ptr<livekit::LocalDataTrack> track,
+                                 livekit::LocalParticipant *participant)
+    : name_(std::move(name)), track_(std::move(track)),
+      participant_(participant) {}
 
 BridgeDataTrack::~BridgeDataTrack() { release(); }
 
@@ -77,16 +80,17 @@ void BridgeDataTrack::release() {
   }
   released_ = true;
 
-  if (track_) {
+  if (participant_ && track_) {
     try {
-      track_->unpublish();
+      participant_->unpublishDataTrack(track_);
     } catch (...) {
-      std::cerr << "[BridgeDataTrack] unpublish error, continuing with "
-                   "cleanup\n";
+      std::cerr << "[BridgeDataTrack] unpublishDataTrack error, continuing "
+                   "with cleanup\n";
     }
   }
 
   track_.reset();
+  participant_ = nullptr;
 }
 
 } // namespace livekit_bridge

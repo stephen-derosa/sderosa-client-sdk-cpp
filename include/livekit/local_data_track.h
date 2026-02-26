@@ -40,11 +40,12 @@ class OwnedLocalDataTrack;
  *
  * Typical usage:
  *
- *   auto dt = room->localParticipant()->publishDataTrack("sensor-data");
+ *   auto lp = room->localParticipant();
+ *   auto dt = lp->publishDataTrack("sensor-data");
  *   DataFrame frame;
  *   frame.payload = {0x01, 0x02, 0x03};
  *   dt->tryPush(frame);
- *   dt->unpublish();
+ *   lp->unpublishDataTrack(dt);
  */
 class LocalDataTrack {
 public:
@@ -67,18 +68,12 @@ public:
   /// Whether the track is still published in the room.
   bool isPublished() const;
 
-  /**
-   * Unpublish this data track from the room.
-   *
-   * After this call, tryPush() will fail and the track cannot be
-   * re-published. The underlying FFI handle is released.
-   */
-  void unpublish();
-
   /// Construct from an owned proto (called by LocalParticipant).
   explicit LocalDataTrack(const proto::OwnedLocalDataTrack &owned);
 
 private:
+  friend class LocalParticipant;
+
   /// Raw FFI handle id for internal use.
   uintptr_t ffi_handle_id() const noexcept { return handle_.get(); }
 
