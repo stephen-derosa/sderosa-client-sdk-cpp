@@ -51,7 +51,7 @@ class FfiEvent;
 class DataTrackSubscription {
 public:
   struct Options {
-    /// Maximum buffered frames. 0 = unbounded.
+    /// Maximum buffered frames (count). 0 = unbounded.
     /// When non-zero, behaves as a ring buffer (oldest dropped on overflow).
     std::size_t capacity{0};
   };
