@@ -84,11 +84,16 @@ private:
   friend class RemoteDataTrack;
 
   DataTrackSubscription() = default;
-
+  /// Internal init helper, called by RemoteDataTrack.
   void init(FfiHandle subscription_handle, const Options &options);
 
+  /// FFI event handler, called by FfiClient.
   void onFfiEvent(const proto::FfiEvent &event);
+
+  /// Push a received DataFrame to the internal queue.
   void pushFrame(DataFrame &&frame);
+
+  /// Push an end-of-stream signal (EOS).
   void pushEos();
 
   /** Protects all mutable state below. */
