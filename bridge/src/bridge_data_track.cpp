@@ -43,7 +43,12 @@ bool BridgeDataTrack::pushFrame(const std::vector<std::uint8_t> &payload,
   frame.payload = payload;
   frame.user_timestamp = user_timestamp;
 
-  return track_->tryPush(frame);
+  try {
+    return track_->tryPush(frame);
+  } catch (const std::exception &e) {
+    std::cerr << "[BridgeDataTrack] tryPush error: " << e.what() << "\n";
+    return false;
+  }
 }
 
 bool BridgeDataTrack::pushFrame(const std::uint8_t *data, std::size_t size,
@@ -57,7 +62,12 @@ bool BridgeDataTrack::pushFrame(const std::uint8_t *data, std::size_t size,
   frame.payload.assign(data, data + size);
   frame.user_timestamp = user_timestamp;
 
-  return track_->tryPush(frame);
+  try {
+    return track_->tryPush(frame);
+  } catch (const std::exception &e) {
+    std::cerr << "[BridgeDataTrack] tryPush error: " << e.what() << "\n";
+    return false;
+  }
 }
 
 bool BridgeDataTrack::isPublished() const {
