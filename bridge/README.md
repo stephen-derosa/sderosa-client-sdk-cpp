@@ -44,7 +44,22 @@ bridge.setOnVideoFrameCallback("remote-peer", livekit::TrackSource::SOURCE_CAMER
         // Called on a background reader thread
     });
 
-// 5. Cleanup is automatic (RAII), or explicit:
+// 5. RPC (Remote Procedure Call)
+bridge.registerRpcMethod("greet",
+    [](const livekit::RpcInvocationData& data) -> std::optional<std::string> {
+        return "Hello, " + data.caller_identity + "!";
+    });
+
+std::string response = bridge.performRpc("remote-peer", "greet", "");
+
+bridge.unregisterRpcMethod("greet");
+
+//    Controller side: send commands to the publisher
+controller_bridge.requestTrackMute("robot-1", "mic");    // mute audio track "mic"
+controller_bridge.requestTrackUnmute("robot-1", "mic");  // unmute it
+controller_bridge.requestTrackRelease("robot-1", "cam"); // unpublish video track "cam"
+
+// 7. Cleanup is automatic (RAII), or explicit:
 mic.reset();       // unpublishes the audio track
 cam.reset();       // unpublishes the video track
 bridge.disconnect();
@@ -138,6 +153,12 @@ bridge.connect(url, token, options);
 | `setOnVideoFrameCallback(identity, source, callback)` | Register a callback for video frames from a specific remote participant + track source. |
 | `clearOnAudioFrameCallback(identity, source)` | Clear the audio callback for a specific remote participant + track source. Stops and joins the reader thread if active. |
 | `clearOnVideoFrameCallback(identity, source)` | Clear the video callback for a specific remote participant + track source. Stops and joins the reader thread if active. |
+| `performRpc(destination_identity, method, payload, response_timeout?)` | Blocking RPC call to a remote participant. Returns the response payload. Throws `livekit::RpcError` on failure. |
+| `registerRpcMethod(method_name, handler)` | Register a handler for incoming RPC invocations. The handler returns an optional response payload or throws `livekit::RpcError`. |
+| `unregisterRpcMethod(method_name)` | Unregister a previously registered RPC handler. |
+| `requestTrackMute(identity, track_name)` | Ask a remote participant to mute a track by name. Throws `livekit::RpcError` on failure. |
+| `requestTrackUnmute(identity, track_name)` | Ask a remote participant to unmute a track by name. Throws `livekit::RpcError` on failure. |
+| `requestTrackRelease(identity, track_name)` | Ask a remote participant to release (unpublish) a track by name. Throws `livekit::RpcError` on failure. |
 
 ### `BridgeAudioTrack`
 
@@ -245,7 +266,7 @@ cd build-debug && ctest -L "bridge_stress" --output-on-failure
 | Executable | Description |
 |------------|-------------|
 | `livekit_bridge_unit_tests` | Unit tests (no server required) |
-| `livekit_bridge_integration_tests` | Audio & data round-trip, latency, connect/disconnect cycles |
+| `livekit_bridge_integration_tests` | Audio, data, & RPC round-trip, remote track control, connect/disconnect cycles |
 | `livekit_bridge_stress_tests` | Sustained push, lifecycle, callback churn, multi-track concurrency |
 
 #### Stress test suites
@@ -265,7 +286,6 @@ The bridge is designed for simplicity and currently only supports limited audio 
 
 - We dont support all events defined in the RoomDelegate interface.
 - E2EE configuration
-- RPC / data channels / data tracks
 - Simulcast tuning
 - Video format selection (RGBA is the default; no format option yet)
 - Custom `RoomOptions` or `TrackPublishOptions`

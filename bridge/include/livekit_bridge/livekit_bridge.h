@@ -22,8 +22,11 @@
 #include "livekit_bridge/bridge_audio_track.h"
 #include "livekit_bridge/bridge_data_track.h"
 #include "livekit_bridge/bridge_video_track.h"
+#include "livekit_bridge/rpc_constants.h"
 
+#include "livekit/local_participant.h"
 #include "livekit/room.h"
+#include "livekit/rpc_error.h"
 
 #include <cstdint>
 #include <functional>
@@ -326,7 +329,117 @@ public:
   void clearOnDataFrameCallback(const std::string &participant_identity,
                                 const std::string &track_name);
 
+  // ---------------------------------------------------------------
+  // RPC (Remote Procedure Call)
+  // ---------------------------------------------------------------
+
+  /**
+   * Initiate a blocking RPC call to a remote participant.
+   *
+   * Sends a request to the participant identified by
+   * @p destination_identity and blocks until a response is received
+   * or the call times out.
+   *
+   * @param destination_identity  Identity of the remote participant.
+   * @param method                Name of the RPC method to invoke.
+   * @param payload               Request payload string.
+   * @param response_timeout      Optional timeout in seconds. If not set,
+   *                              the server default (15 s) is used.
+   * @return The response payload returned by the remote handler.
+   *
+   * @throws livekit::RpcError      on RPC-level errors (timeout, unsupported
+   *                                method, application error, etc.).
+   * @throws std::runtime_error     if the bridge is not connected.
+   */
+  std::string performRpc(const std::string &destination_identity,
+                         const std::string &method, const std::string &payload,
+                         std::optional<double> response_timeout = std::nullopt);
+
+  /**
+   * Register a handler for incoming RPC method invocations.
+   *
+   * When a remote participant calls the given @p method_name on this
+   * participant, the bridge invokes @p handler. The handler may return
+   * an optional response payload or throw a @c livekit::RpcError to
+   * signal failure to the caller.
+   *
+   * If a handler is already registered for @p method_name, it is
+   * silently replaced.
+   *
+   * @param method_name  Name of the RPC method to handle.
+   * @param handler      Callback invoked on each incoming invocation.
+   * @throws std::runtime_error if the bridge is not connected.
+   */
+  void registerRpcMethod(const std::string &method_name,
+                         livekit::LocalParticipant::RpcHandler handler);
+
+  /**
+   * Unregister a previously registered RPC method handler.
+   *
+   * After this call, invocations for @p method_name result in an
+   * "unsupported method" error being returned to the remote caller.
+   * If no handler is registered for this name, the call is a no-op.
+   *
+   * @param method_name  Name of the RPC method to unregister.
+   * @throws std::runtime_error if the bridge is not connected.
+   */
+  void unregisterRpcMethod(const std::string &method_name);
+
+  // ---------------------------------------------------------------
+  // Remote Track Control (via RPC)
+  // ---------------------------------------------------------------
+
+  /**
+   * Request a remote participant to mute a published track.
+   *
+   * The remote participant must have called enableRPC().
+   *
+   * @param destination_identity  Identity of the remote participant.
+   * @param track_name            Name of the track to mute.
+   * @throws livekit::RpcError on failure (track not found, timeout, etc.).
+   * @throws std::runtime_error if the bridge is not connected.
+   */
+  void requestTrackMute(const std::string &destination_identity,
+                        const std::string &track_name);
+
+  /**
+   * Request a remote participant to unmute a published track.
+   *
+   * The remote participant must have called enableRPC().
+   *
+   * @param destination_identity  Identity of the remote participant.
+   * @param track_name            Name of the track to unmute.
+   * @throws livekit::RpcError on failure (track not found, timeout, etc.).
+   * @throws std::runtime_error if the bridge is not connected.
+   */
+  void requestTrackUnmute(const std::string &destination_identity,
+                          const std::string &track_name);
+
+  /**
+   * Request a remote participant to release (unpublish) a published track.
+   *
+   * The remote participant must have called enableRPC().
+   *
+   * @param destination_identity  Identity of the remote participant.
+   * @param track_name            Name of the track to release.
+   * @throws livekit::RpcError on failure (track not found, timeout, etc.).
+   * @throws std::runtime_error if the bridge is not connected.
+   */
+  void requestTrackRelease(const std::string &destination_identity,
+                           const std::string &track_name);
+
 private:
+  /**
+   * Enable All default RPC handlers on this participant.
+   *
+   * Registers all built in RPC handlers (@c rpc::track_control::kMethod) and
+   * allows remote participants to mute, unmute, or release tracks
+   * published by this bridge. Must be called after connect().
+   *
+   * @throws std::runtime_error if the bridge is not connected.
+   */
+  void enableRPC();
+
   friend class BridgeRoomDelegate;
   friend class test::CallbackKeyTest;
   friend class test::LiveKitBridgeTest;
@@ -422,6 +535,12 @@ private:
   startDataReader(const DataCallbackKey &key,
                   const std::shared_ptr<livekit::RemoteDataTrack> &track,
                   DataFrameCallback cb);
+
+  /// Handler for the built-in "lk.bridge.track-control" RPC method.
+  /// Parses the payload, looks up the track, and executes the action.
+  /// @pre Caller does NOT hold mutex_ (handler acquires it internally).
+  std::optional<std::string>
+  handleTrackControlRpc(const livekit::RpcInvocationData &data);
 
   mutable std::mutex mutex_;
   bool connected_;
