@@ -32,6 +32,8 @@ namespace rpc {
 /// a data track is treated as release, and unmute returns an error.
 namespace track_control {
 
+enum class Action { kActionMute, kActionUnmute };
+
 /// RPC method name registered by the bridge for remote track control.
 constexpr const char *kMethod = "lk.bridge.track-control";
 

@@ -55,8 +55,8 @@ std::string response = bridge.performRpc("remote-peer", "greet", "");
 bridge.unregisterRpcMethod("greet");
 
 //    Controller side: send commands to the publisher
-controller_bridge.requestTrackMute("robot-1", "mic");    // mute audio track "mic"
-controller_bridge.requestTrackUnmute("robot-1", "mic");  // unmute it
+controller_bridge.requestRemoteTrackMute("robot-1", "mic");    // mute audio track "mic"
+controller_bridge.requestRemoteTrackUnmute("robot-1", "mic");  // unmute it
 controller_bridge.requestTrackRelease("robot-1", "cam"); // unpublish video track "cam"
 
 // 7. Cleanup is automatic (RAII), or explicit:
@@ -156,8 +156,8 @@ bridge.connect(url, token, options);
 | `performRpc(destination_identity, method, payload, response_timeout?)` | Blocking RPC call to a remote participant. Returns the response payload. Throws `livekit::RpcError` on failure. |
 | `registerRpcMethod(method_name, handler)` | Register a handler for incoming RPC invocations. The handler returns an optional response payload or throws `livekit::RpcError`. |
 | `unregisterRpcMethod(method_name)` | Unregister a previously registered RPC handler. |
-| `requestTrackMute(identity, track_name)` | Ask a remote participant to mute a track by name. Throws `livekit::RpcError` on failure. |
-| `requestTrackUnmute(identity, track_name)` | Ask a remote participant to unmute a track by name. Throws `livekit::RpcError` on failure. |
+| `requestRemoteTrackMute(identity, track_name)` | Ask a remote participant to mute a track by name. Throws `livekit::RpcError` on failure. |
+| `requestRemoteTrackUnmute(identity, track_name)` | Ask a remote participant to unmute a track by name. Throws `livekit::RpcError` on failure. |
 | `requestTrackRelease(identity, track_name)` | Ask a remote participant to release (unpublish) a track by name. Throws `livekit::RpcError` on failure. |
 
 ### `BridgeAudioTrack`

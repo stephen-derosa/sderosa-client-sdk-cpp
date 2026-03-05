@@ -181,14 +181,15 @@ TEST_F(BridgeRemoteTrackControlTest, RemoteMuteAudioTrack) {
   std::this_thread::sleep_for(2s);
 
   std::cout << "Requesting mute..." << std::endl;
-  EXPECT_NO_THROW(controller.requestTrackMute(publisher_identity, "mic"));
+  EXPECT_NO_THROW(controller.requestRemoteTrackMute(publisher_identity, "mic"));
 
   std::vector<std::int16_t> silence(480, 0);
   bool pushed_while_muted = audio_track->pushFrame(silence, 480);
   std::cout << "pushFrame while muted: " << pushed_while_muted << std::endl;
 
   std::cout << "Requesting unmute..." << std::endl;
-  EXPECT_NO_THROW(controller.requestTrackUnmute(publisher_identity, "mic"));
+  EXPECT_NO_THROW(
+      controller.requestRemoteTrackUnmute(publisher_identity, "mic"));
 
   bool pushed_after_unmute = audio_track->pushFrame(silence, 480);
   EXPECT_TRUE(pushed_after_unmute);
@@ -219,10 +220,11 @@ TEST_F(BridgeRemoteTrackControlTest, RemoteMuteVideoTrack) {
   std::this_thread::sleep_for(2s);
 
   std::cout << "Requesting mute on video track..." << std::endl;
-  EXPECT_NO_THROW(controller.requestTrackMute(publisher_identity, "cam"));
+  EXPECT_NO_THROW(controller.requestRemoteTrackMute(publisher_identity, "cam"));
 
   std::cout << "Requesting unmute on video track..." << std::endl;
-  EXPECT_NO_THROW(controller.requestTrackUnmute(publisher_identity, "cam"));
+  EXPECT_NO_THROW(
+      controller.requestRemoteTrackUnmute(publisher_identity, "cam"));
 
   std::vector<std::uint8_t> frame(320 * 240 * 4, 128);
   bool pushed_after_unmute = video_track->pushFrame(frame);
@@ -288,7 +290,7 @@ TEST_F(BridgeRemoteTrackControlTest, RemoteMuteNonexistentTrack) {
 
   std::cout << "Requesting mute on nonexistent track..." << std::endl;
   try {
-    controller.requestTrackMute(publisher_identity, "no-such-track");
+    controller.requestRemoteTrackMute(publisher_identity, "no-such-track");
     FAIL() << "Expected RpcError for nonexistent track";
   } catch (const livekit::RpcError &e) {
     std::cout << "Caught RpcError: code=" << e.code() << " message=\""

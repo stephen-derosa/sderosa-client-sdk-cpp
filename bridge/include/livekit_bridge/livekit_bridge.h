@@ -21,6 +21,7 @@
 
 #include "livekit_bridge/bridge_audio_track.h"
 #include "livekit_bridge/bridge_video_track.h"
+#include "livekit_bridge/rpc_constants.h"
 
 #include "livekit/local_participant.h"
 #include "livekit/room.h"
@@ -335,8 +336,8 @@ public:
    * @param track_name            Name of the track to mute.
    * @return true if the track was muted successfully.
    */
-  bool requestTrackMute(const std::string &destination_identity,
-                        const std::string &track_name);
+  bool requestRemoteTrackMute(const std::string &destination_identity,
+                              const std::string &track_name);
 
   /**
    * Request a remote participant to unmute a published track.
@@ -348,8 +349,8 @@ public:
    * @param track_name            Name of the track to unmute.
    * @return true if the track was unmuted successfully.
    */
-  bool requestTrackUnmute(const std::string &destination_identity,
-                          const std::string &track_name);
+  bool requestRemoteTrackUnmute(const std::string &destination_identity,
+                                const std::string &track_name);
 
 private:
   friend class BridgeRoomDelegate;
@@ -405,7 +406,7 @@ private:
   /// Used as the TrackActionFn callback for RpcManager.
   /// Throws livekit::RpcError if the track is not found.
   /// @pre Caller does NOT hold mutex_ (acquires it internally).
-  void executeTrackAction(const std::string &action,
+  void executeTrackAction(const rpc::track_control::Action &action,
                           const std::string &track_name);
 
   mutable std::mutex mutex_;

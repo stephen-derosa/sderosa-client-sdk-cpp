@@ -9,7 +9,7 @@ track-control RPC. A **receiver** publishes audio and video tracks, and a
 | Executable            | Role |
 |-----------------------|------|
 | **BridgeMuteReceiver** | Publishes an audio track (`"mic"`) and a video track (`"cam"`) using SDL3 hardware capture when available, falling back to silence and solid-color frames otherwise. The bridge automatically registers a built-in `lk.bridge.track-control` RPC handler on connect. |
-| **BridgeMuteCaller**   | Subscribes to the receiver's mic and cam tracks, renders them via SDL3 (speaker + window), and periodically calls `requestTrackMute` / `requestTrackUnmute` to toggle both tracks. |
+| **BridgeMuteCaller**   | Subscribes to the receiver's mic and cam tracks, renders them via SDL3 (speaker + window), and periodically calls `requestRemoteTrackMute` / `requestRemoteTrackUnmute` to toggle both tracks. |
 
 When the caller mutes a track, the receiver's `LocalAudioTrack::mute()` or
 `LocalVideoTrack::mute()` is invoked via RPC, which signals the LiveKit

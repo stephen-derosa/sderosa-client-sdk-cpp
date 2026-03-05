@@ -214,10 +214,10 @@ int main(int argc, char *argv[]) {
       // Toggle audio track "mic"
       try {
         if (currently_muted) {
-          bridge.requestTrackUnmute(receiver_identity, "mic");
+          bridge.requestRemoteTrackUnmute(receiver_identity, "mic");
           std::cout << "[caller]   mic: unmuted OK\n";
         } else {
-          bridge.requestTrackMute(receiver_identity, "mic");
+          bridge.requestRemoteTrackMute(receiver_identity, "mic");
           std::cout << "[caller]   mic: muted OK\n";
         }
       } catch (const livekit::RpcError &e) {
@@ -230,10 +230,10 @@ int main(int argc, char *argv[]) {
       // Toggle video track "cam"
       try {
         if (currently_muted) {
-          bridge.requestTrackUnmute(receiver_identity, "cam");
+          bridge.requestRemoteTrackUnmute(receiver_identity, "cam");
           std::cout << "[caller]   cam: unmuted OK\n";
         } else {
-          bridge.requestTrackMute(receiver_identity, "cam");
+          bridge.requestRemoteTrackMute(receiver_identity, "cam");
           std::cout << "[caller]   cam: muted OK\n";
         }
       } catch (const livekit::RpcError &e) {

@@ -65,7 +65,8 @@ LiveKitBridge::CallbackKeyHash::operator()(const CallbackKey &k) const {
 LiveKitBridge::LiveKitBridge()
     : connected_(false), connecting_(false), sdk_initialized_(false),
       rpc_manager_(std::make_unique<RpcManager>(
-          [this](const std::string &action, const std::string &track_name) {
+          [this](const rpc::track_control::Action &action,
+                 const std::string &track_name) {
             executeTrackAction(action, track_name);
           })) {}
 
@@ -415,13 +416,13 @@ bool LiveKitBridge::unregisterRpcMethod(const std::string &method_name) {
   }
 }
 
-bool LiveKitBridge::requestTrackMute(const std::string &destination_identity,
-                                     const std::string &track_name) {
+bool LiveKitBridge::requestRemoteTrackMute(
+    const std::string &destination_identity, const std::string &track_name) {
   if (!isConnected()) {
     return false;
   }
   try {
-    rpc_manager_->requestTrackMute(destination_identity, track_name);
+    rpc_manager_->requestRemoteTrackMute(destination_identity, track_name);
     return true;
   } catch (const std::exception &e) {
     std::cerr << "[LiveKitBridge] Exception: " << e.what() << "\n";
@@ -435,13 +436,13 @@ bool LiveKitBridge::requestTrackMute(const std::string &destination_identity,
   }
 }
 
-bool LiveKitBridge::requestTrackUnmute(const std::string &destination_identity,
-                                       const std::string &track_name) {
+bool LiveKitBridge::requestRemoteTrackUnmute(
+    const std::string &destination_identity, const std::string &track_name) {
   if (!isConnected()) {
     return false;
   }
   try {
-    rpc_manager_->requestTrackUnmute(destination_identity, track_name);
+    rpc_manager_->requestRemoteTrackUnmute(destination_identity, track_name);
     return true;
   } catch (const std::exception &e) {
     std::cerr << "[LiveKitBridge] Exception: " << e.what() << "\n";
@@ -459,16 +460,13 @@ bool LiveKitBridge::requestTrackUnmute(const std::string &destination_identity,
 // Track action callback for RpcManager
 // ---------------------------------------------------------------
 
-void LiveKitBridge::executeTrackAction(const std::string &action,
+void LiveKitBridge::executeTrackAction(const rpc::track_control::Action &action,
                                        const std::string &track_name) {
-  namespace tc = rpc::track_control;
   std::lock_guard<std::mutex> lock(mutex_);
-
-  assert(action == tc::kActionMute || action == tc::kActionUnmute);
 
   for (auto &track : published_audio_tracks_) {
     if (track->name() == track_name && !track->isReleased()) {
-      if (action == tc::kActionMute) {
+      if (action == rpc::track_control::Action::kActionMute) {
         track->mute();
       } else {
         track->unmute();
@@ -479,7 +477,7 @@ void LiveKitBridge::executeTrackAction(const std::string &action,
 
   for (auto &track : published_video_tracks_) {
     if (track->name() == track_name && !track->isReleased()) {
-      if (action == tc::kActionMute) {
+      if (action == rpc::track_control::Action::kActionMute) {
         track->mute();
       } else {
         track->unmute();
