@@ -258,6 +258,14 @@ else()
   endforeach()
 endif()
 
+# --- SimpleBridge example (minimal bridge usage, no SDL) ---
+
+add_executable(SimpleBridge
+  simple_bridge/main.cpp
+)
+target_include_directories(SimpleBridge PRIVATE ${EXAMPLES_PRIVATE_INCLUDE_DIRS})
+target_link_libraries(SimpleBridge PRIVATE livekit_bridge spdlog::spdlog)
+
 # Windows: Copy required DLLs to examples output directory
 if(WIN32)
   # Get the livekit library output directory (where DLLs are copied during main build)
@@ -269,7 +277,7 @@ if(WIN32)
   )
   
   # Copy DLLs to each example's output directory
-  foreach(EXAMPLE SimpleRoom SimpleRpc SimpleJoystickSender SimpleJoystickReceiver SimpleDataStream LoggingLevelsBasicUsage LoggingLevelsCustomSinks BridgeRobot BridgeHuman)
+  foreach(EXAMPLE SimpleRoom SimpleRpc SimpleJoystickSender SimpleJoystickReceiver SimpleDataStream LoggingLevelsBasicUsage LoggingLevelsCustomSinks BridgeRobot BridgeHuman SimpleBridge)
     foreach(DLL ${REQUIRED_DLLS})
       add_custom_command(TARGET ${EXAMPLE} POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
@@ -281,8 +289,8 @@ if(WIN32)
     endforeach()
   endforeach()
 
-  # bridge_human_robot examples also need livekit_bridge.dll
-  foreach(EXAMPLE BridgeRobot BridgeHuman)
+  # bridge examples also need livekit_bridge.dll
+  foreach(EXAMPLE BridgeRobot BridgeHuman SimpleBridge)
     add_custom_command(TARGET ${EXAMPLE} POST_BUILD
       COMMAND ${CMAKE_COMMAND} -E copy_if_different
               "$<TARGET_FILE:livekit_bridge>"
@@ -304,7 +312,7 @@ if(UNIX)
   endif()
   
   # Copy shared library to each example's output directory
-  foreach(EXAMPLE SimpleRoom SimpleRpc SimpleJoystickSender SimpleJoystickReceiver SimpleDataStream LoggingLevelsBasicUsage LoggingLevelsCustomSinks BridgeRobot BridgeHuman)
+  foreach(EXAMPLE SimpleRoom SimpleRpc SimpleJoystickSender SimpleJoystickReceiver SimpleDataStream LoggingLevelsBasicUsage LoggingLevelsCustomSinks BridgeRobot BridgeHuman SimpleBridge)
     add_custom_command(TARGET ${EXAMPLE} POST_BUILD
       COMMAND ${CMAKE_COMMAND} -E copy_if_different
               "${LIVEKIT_LIB_DIR}/${FFI_SHARED_LIB}"
@@ -314,8 +322,8 @@ if(UNIX)
     )
   endforeach()
 
-  # bridge_human_robot examples also need livekit_bridge shared library
-  foreach(EXAMPLE BridgeRobot BridgeHuman)
+  # bridge examples also need livekit_bridge shared library
+  foreach(EXAMPLE BridgeRobot BridgeHuman SimpleBridge)
     add_custom_command(TARGET ${EXAMPLE} POST_BUILD
       COMMAND ${CMAKE_COMMAND} -E copy_if_different
               "$<TARGET_FILE:livekit_bridge>"
