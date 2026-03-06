@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 LiveKit
+ * Copyright 2026 LiveKit
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,6 +19,9 @@
 
 #include "bridge_room_delegate.h"
 
+#include "lk_log.h"
+
+#include "livekit/remote_data_track.h"
 #include "livekit/remote_participant.h"
 #include "livekit/remote_track_publication.h"
 #include "livekit/track.h"
@@ -48,6 +51,21 @@ void BridgeRoomDelegate::onTrackUnsubscribed(
   const livekit::TrackSource source = ev.publication->source();
 
   bridge_.onTrackUnsubscribed(identity, source);
+}
+
+void BridgeRoomDelegate::onRemoteDataTrackPublished(
+    livekit::Room & /*room*/,
+    const livekit::RemoteDataTrackPublishedEvent &ev) {
+  if (!ev.track) {
+    LK_LOG_ERROR("[BridgeRoomDelegate] onRemoteDataTrackPublished called "
+                 "with null track.");
+    return;
+  }
+
+  LK_LOG_INFO("[BridgeRoomDelegate] onRemoteDataTrackPublished: \"{}\" from "
+              "\"{}\"",
+              ev.track->info().name, ev.track->publisherIdentity());
+  bridge_.onRemoteDataTrackPublished(ev.track);
 }
 
 } // namespace livekit_bridge
