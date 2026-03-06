@@ -27,27 +27,27 @@
 namespace livekit_bridge {
 
 void BridgeRoomDelegate::onTrackSubscribed(
-    livekit::Room & /*room*/, const livekit::TrackSubscribedEvent &ev) {
-  if (!ev.track || !ev.participant || !ev.publication) {
-    return;
+    livekit::Room &room, const livekit::TrackSubscribedEvent &ev) {
+  if (ev.track && ev.participant && ev.publication) {
+    const std::string identity = ev.participant->identity();
+    const livekit::TrackSource source = ev.publication->source();
+    bridge_.onTrackSubscribed(identity, source, ev.track);
   }
 
-  const std::string identity = ev.participant->identity();
-  const livekit::TrackSource source = ev.publication->source();
-
-  bridge_.onTrackSubscribed(identity, source, ev.track);
+  if (user_delegate_)
+    user_delegate_->onTrackSubscribed(room, ev);
 }
 
 void BridgeRoomDelegate::onTrackUnsubscribed(
-    livekit::Room & /*room*/, const livekit::TrackUnsubscribedEvent &ev) {
-  if (!ev.participant || !ev.publication) {
-    return;
+    livekit::Room &room, const livekit::TrackUnsubscribedEvent &ev) {
+  if (ev.participant && ev.publication) {
+    const std::string identity = ev.participant->identity();
+    const livekit::TrackSource source = ev.publication->source();
+    bridge_.onTrackUnsubscribed(identity, source);
   }
 
-  const std::string identity = ev.participant->identity();
-  const livekit::TrackSource source = ev.publication->source();
-
-  bridge_.onTrackUnsubscribed(identity, source);
+  if (user_delegate_)
+    user_delegate_->onTrackUnsubscribed(room, ev);
 }
 
 } // namespace livekit_bridge

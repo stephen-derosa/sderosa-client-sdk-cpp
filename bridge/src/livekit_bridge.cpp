@@ -71,6 +71,12 @@ LiveKitBridge::~LiveKitBridge() { disconnect(); }
 
 bool LiveKitBridge::connect(const std::string &url, const std::string &token,
                             const livekit::RoomOptions &options) {
+  return connect(url, token, options, nullptr);
+}
+
+bool LiveKitBridge::connect(const std::string &url, const std::string &token,
+                            const livekit::RoomOptions &options,
+                            livekit::RoomDelegate *user_delegate) {
   // ---- Phase 1: quick check under lock ----
   {
     std::lock_guard<std::mutex> lock(mutex_);
@@ -110,9 +116,7 @@ bool LiveKitBridge::connect(const std::string &url, const std::string &token,
   // Setting the delegate here (after Connect) ensures that any queued
   // onTrackSubscribed events are delivered only after
   // room_/delegate_/connected_ are all in a consistent state.
-
-  auto delegate = std::make_unique<BridgeRoomDelegate>(*this);
-  assert(delegate != nullptr);
+  auto delegate = std::make_unique<BridgeRoomDelegate>(*this, user_delegate);
   room->setDelegate(delegate.get());
   {
     std::lock_guard<std::mutex> lock(mutex_);
@@ -140,8 +144,9 @@ void LiveKitBridge::disconnect() {
     connected_ = false;
     connecting_ = false;
 
-    // Release all published tracks while the room/participant are still alive.
-    // This calls unpublishTrack() on each, ensuring participant_ is valid.
+    // Release all published tracks while the room/participant are still
+    // alive. This calls unpublishTrack() on each, ensuring participant_ is
+    // valid.
     for (auto &track : published_audio_tracks_) {
       track->release();
     }

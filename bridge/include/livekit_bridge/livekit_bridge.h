@@ -19,10 +19,10 @@
 
 #pragma once
 
+#include "livekit/room.h"
+#include "livekit/room_delegate.h"
 #include "livekit_bridge/bridge_audio_track.h"
 #include "livekit_bridge/bridge_video_track.h"
-
-#include "livekit/room.h"
 
 #include <cstdint>
 #include <functional>
@@ -134,11 +134,28 @@ public:
    * @param url    WebSocket URL of the LiveKit server.
    * @param token  Access token for authentication.
    * @param options Room options.
-
    * @return true if connection succeeded (or was already connected).
    */
   bool connect(const std::string &url, const std::string &token,
                const livekit::RoomOptions &options);
+
+  /**
+   * Connect to a LiveKit room with an optional user-supplied delegate.
+   *
+   * The bridge creates its own internal delegate that intercepts events
+   * it needs (track subscribe/unsubscribe). All events -- including
+   * those the bridge intercepts -- are forwarded to @p user_delegate.
+   *
+   * @param url    LiveKit server URL.
+   * @param token  Access token for authentication.
+   * @param options Room options.
+   * @param user_delegate  Delegate for room events. The caller owns the
+   *                       delegate and must keep it alive until disconnect().
+   * @return true if connection succeeded (or was already connected).
+   */
+  bool connect(const std::string &url, const std::string &token,
+               const livekit::RoomOptions &options,
+               livekit::RoomDelegate *user_delegate);
 
   /**
    * Disconnect from the room and release all resources.
