@@ -240,6 +240,11 @@ Ros2LiveKitBridge::Ros2LiveKitBridge(const rclcpp::NodeOptions &options)
   const std::string livekit_token =
       resolveCredential(this, "livekit_token", "LIVEKIT_TOKEN", token_source);
 
+  // default options
+  livekit::RoomOptions room_options;
+  room_options.auto_subscribe = true;
+  room_options.dynacast = true;
+
   if (livekit_url.empty() || livekit_token.empty()) {
     RCLCPP_WARN(
         this->get_logger(),
@@ -258,7 +263,7 @@ Ros2LiveKitBridge::Ros2LiveKitBridge(const rclcpp::NodeOptions &options)
                 token_source.c_str());
     RCLCPP_INFO(this->get_logger(), "Connecting to %s ...",
                 livekit_url.c_str());
-    if (livekit_bridge_.connect(livekit_url, livekit_token)) {
+    if (livekit_bridge_.connect(livekit_url, livekit_token, room_options)) {
       RCLCPP_INFO(this->get_logger(), "Connected to LiveKit room.");
     } else {
       RCLCPP_ERROR(this->get_logger(), "Failed to connect to LiveKit room.");

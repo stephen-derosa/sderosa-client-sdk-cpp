@@ -118,7 +118,7 @@ and the [Foxglove bridge](https://github.com/foxglove/foxglove-sdk/tree/main/ros
 ```bash
 cd ros/
 source /opt/ros/humble/setup.bash
-colcon build --packages-select ros2_livekit_bridge
+colcon build --packages-select ros2_livekit_bridge --cmake-args -DLIVEKIT_SDK_DIR=/path/to/cpp-client-sdk/build-debug
 ```
 
 ## Running
