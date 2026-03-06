@@ -604,10 +604,10 @@ void Room::OnEvent(const FfiEvent &event) {
       const auto &rdtp = re.remote_data_track_published();
       auto remote_track =
           std::shared_ptr<RemoteDataTrack>(new RemoteDataTrack(rdtp.track()));
-      LK_LOG_INFO("[Room] RoomEvent::kRemoteDataTrackPublished: \""
-                  << remote_track->info().name << "\" from \""
-                  << remote_track->publisherIdentity()
-                  << "\" (sid=" << remote_track->info().sid << ")");
+      LK_LOG_INFO("[Room] RoomEvent::kRemoteDataTrackPublished: \"{}\" from "
+                  "\"{}\" (sid={})",
+                  remote_track->info().name, remote_track->publisherIdentity(),
+                  remote_track->info().sid);
       RemoteDataTrackPublishedEvent ev;
       ev.track = remote_track;
       if (delegate_snapshot) {

@@ -324,7 +324,7 @@ FfiClient::connectAsync(const std::string &url, const std::string &token,
   auto *opts = connect->mutable_options();
   opts->set_auto_subscribe(options.auto_subscribe);
   opts->set_dynacast(options.dynacast);
-  opts->set_single_peer_connection(options.single_peer_connection);
+  // opts->set_single_peer_connection(options.single_peer_connection);
   LK_LOG_INFO("[FfiClient] connectAsync: auto_subscribe={}, dynacast={}, "
               "single_peer_connection={}",
               options.auto_subscribe, options.dynacast,

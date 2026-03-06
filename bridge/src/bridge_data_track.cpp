@@ -16,6 +16,8 @@
 
 #include "livekit_bridge/bridge_data_track.h"
 
+#include "lk_log.h"
+
 #include "livekit/data_frame.h"
 #include "livekit/local_data_track.h"
 #include "livekit/local_participant.h"
@@ -44,7 +46,7 @@ bool BridgeDataTrack::pushFrame(const std::vector<std::uint8_t> &payload,
   try {
     return track_->tryPush(frame);
   } catch (const std::exception &e) {
-    LK_LOG_ERROR("[BridgeDataTrack] tryPush error: " << e.what());
+    LK_LOG_ERROR("[BridgeDataTrack] tryPush error: {}", e.what());
     return false;
   }
 }
@@ -63,7 +65,7 @@ bool BridgeDataTrack::pushFrame(const std::uint8_t *data, std::size_t size,
   try {
     return track_->tryPush(frame);
   } catch (const std::exception &e) {
-    LK_LOG_ERROR("[BridgeDataTrack] tryPush error: " << e.what());
+    LK_LOG_ERROR("[BridgeDataTrack] tryPush error: {}", e.what());
     return false;
   }
 }

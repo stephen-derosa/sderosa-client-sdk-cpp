@@ -307,11 +307,10 @@ LiveKitBridge::createDataTrack(const std::string &name) {
         "LiveKitBridge::createDataTrack: not connected to a room");
   }
 
-  LK_LOG_INFO("[LiveKitBridge] Publishing data track \"" << name << "\"...");
+  LK_LOG_INFO("[LiveKitBridge] Publishing data track \"{}\"...", name);
   auto track = room_->localParticipant()->publishDataTrack(name);
-  LK_LOG_INFO("[LiveKitBridge] Data track \"" << name << "\" published "
-                                              << "(sid=" << track->info().sid
-                                              << ").");
+  LK_LOG_INFO("[LiveKitBridge] Data track \"{}\" published (sid={}).", name,
+              track->info().sid);
 
   auto bridge_track = std::shared_ptr<BridgeDataTrack>(
       new BridgeDataTrack(name, std::move(track), room_->localParticipant()));
@@ -358,8 +357,9 @@ void LiveKitBridge::setOnDataFrameCallback(
   std::thread old_thread;
   {
     std::lock_guard<std::mutex> lock(mutex_);
-    LK_LOG_INFO("[LiveKitBridge] Registered data callback for (\""
-                << participant_identity << "\", \"" << track_name << "\").");
+    LK_LOG_INFO(
+        "[LiveKitBridge] Registered data callback for (\"{}\", \"{}\").",
+        participant_identity, track_name);
     DataCallbackKey key{participant_identity, track_name};
     data_callbacks_[key] = std::move(callback);
 
@@ -446,9 +446,9 @@ void LiveKitBridge::onTrackSubscribed(
         old_thread = startVideoReader(key, track, it->second);
       }
     } else {
-      LK_LOG_INFO("[LiveKitBridge] Track subscribed: \""
-                  << track->name() << "\" from \"" << participant_identity
-                  << "\" (sid=" << track->sid() << ")");
+      LK_LOG_INFO(
+          "[LiveKitBridge] Track subscribed: \"{}\" from \"{}\" (sid={})",
+          track->name(), participant_identity, track->sid());
     }
   }
   // If this key already had a reader (e.g. track was re-subscribed), the old
@@ -475,10 +475,10 @@ void LiveKitBridge::onTrackUnsubscribed(const std::string &participant_identity,
 
 void LiveKitBridge::onRemoteDataTrackPublished(
     std::shared_ptr<livekit::RemoteDataTrack> track) {
-  LK_LOG_INFO("[LiveKitBridge] Remote data track published: \""
-              << track->info().name << "\" from \""
-              << track->publisherIdentity() << "\" (sid=" << track->info().sid
-              << ")");
+  LK_LOG_INFO("[LiveKitBridge] Remote data track published: \"{}\" from \"{}\" "
+              "(sid={})",
+              track->info().name, track->publisherIdentity(),
+              track->info().sid);
 
   std::thread old_thread;
   std::string identity;
@@ -493,15 +493,14 @@ void LiveKitBridge::onRemoteDataTrackPublished(
 
     auto it = data_callbacks_.find(key);
     if (it != data_callbacks_.end()) {
-      LK_LOG_INFO("[LiveKitBridge] Found matching callback for ("
-                  << key.identity << ", " << key.track_name
-                  << "), starting data reader.");
+      LK_LOG_INFO("[LiveKitBridge] Found matching callback for ({}, {}), "
+                  "starting data reader.",
+                  key.identity, key.track_name);
       old_thread = startDataReader(key, track, it->second);
     } else {
-      LK_LOG_INFO(
-          "[LiveKitBridge] No callback registered yet for ("
-          << key.identity << ", " << key.track_name
-          << "); storing as pending (will start when callback is set).");
+      LK_LOG_INFO("[LiveKitBridge] No callback registered yet for ({}, {}); "
+                  "storing as pending (will start when callback is set).",
+                  key.identity, key.track_name);
       pending_remote_data_tracks_[key] = track;
     }
   }
@@ -625,21 +624,22 @@ std::thread LiveKitBridge::startDataReader(
     DataFrameCallback cb) {
   auto old_thread = extractDataReaderThread(key);
 
-  LK_LOG_INFO("[LiveKitBridge] Subscribing to data track \""
-              << key.track_name << "\" from \"" << key.identity << "\"...");
+  LK_LOG_INFO("[LiveKitBridge] Subscribing to data track \"{}\" from \"{}\"...",
+              key.track_name, key.identity);
 
   std::shared_ptr<livekit::DataTrackSubscription> subscription;
   try {
     subscription = track->subscribe();
   } catch (const std::exception &e) {
-    LK_LOG_ERROR("[LiveKitBridge] Failed to subscribe to data track \""
-                 << key.track_name << "\" from \"" << key.identity
-                 << "\": " << e.what());
+    LK_LOG_ERROR("[LiveKitBridge] Failed to subscribe to data track \"{}\" "
+                 "from \"{}\": {}",
+                 key.track_name, key.identity, e.what());
     return old_thread;
   }
 
-  LK_LOG_INFO("[LiveKitBridge] Subscribed to data track \""
-              << key.track_name << "\"; starting reader thread.");
+  LK_LOG_INFO("[LiveKitBridge] Subscribed to data track \"{}\"; starting "
+              "reader thread.",
+              key.track_name);
 
   auto sub_copy = subscription;
   auto track_name = key.track_name;
@@ -649,19 +649,20 @@ std::thread LiveKitBridge::startDataReader(
   reader.remote_track = track;
   reader.subscription = std::move(subscription);
   reader.thread = std::thread([sub_copy, cb, track_name, identity]() {
-    LK_LOG_INFO("[LiveKitBridge] Data reader thread running for \""
-                << track_name << "\" from \"" << identity << "\".");
+    LK_LOG_INFO(
+        "[LiveKitBridge] Data reader thread running for \"{}\" from \"{}\".",
+        track_name, identity);
     livekit::DataFrame frame;
     while (sub_copy->read(frame)) {
       try {
         cb(frame.payload, frame.user_timestamp);
       } catch (const std::exception &e) {
-        LK_LOG_ERROR("[LiveKitBridge] Data callback exception: " << e.what()
-                  << ");
+        LK_LOG_ERROR("[LiveKitBridge] Data callback exception: {}", e.what());
       }
     }
-    LK_LOG_INFO("[LiveKitBridge] Data reader thread exiting for \""
-                << track_name << "\" from \"" << identity << "\".");
+    LK_LOG_INFO(
+        "[LiveKitBridge] Data reader thread exiting for \"{}\" from \"{}\".",
+        track_name, identity);
   });
 
   active_data_readers_[key] = std::move(reader);

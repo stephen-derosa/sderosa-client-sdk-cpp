@@ -19,13 +19,13 @@
 
 #include "bridge_room_delegate.h"
 
+#include "lk_log.h"
+
 #include "livekit/remote_data_track.h"
 #include "livekit/remote_participant.h"
 #include "livekit/remote_track_publication.h"
 #include "livekit/track.h"
 #include "livekit_bridge/livekit_bridge.h"
-
-#include <iostream>
 
 namespace livekit_bridge {
 
@@ -62,9 +62,9 @@ void BridgeRoomDelegate::onRemoteDataTrackPublished(
     return;
   }
 
-  LK_LOG_INFO("[BridgeRoomDelegate] onRemoteDataTrackPublished: \""
-              << ev.track->info().name << "\" from \""
-              << ev.track->publisherIdentity() << "\"");
+  LK_LOG_INFO("[BridgeRoomDelegate] onRemoteDataTrackPublished: \"{}\" from "
+              "\"{}\"",
+              ev.track->info().name, ev.track->publisherIdentity());
   bridge_.onRemoteDataTrackPublished(ev.track);
 }
 
