@@ -43,6 +43,13 @@ if(BRIDGE_TEST_SOURCES)
       GTest::gtest_main
   )
 
+  # Expose internal bridge headers (bridge/src/) so tests can unit-test
+  # private implementation classes like BridgeRoomDelegate.
+  target_include_directories(livekit_bridge_tests
+    PRIVATE
+      ${CMAKE_CURRENT_SOURCE_DIR}/../src
+  )
+
   # Copy shared libraries to test executable directory
   if(WIN32)
     add_custom_command(TARGET livekit_bridge_tests POST_BUILD
