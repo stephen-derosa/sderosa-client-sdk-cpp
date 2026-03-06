@@ -403,6 +403,8 @@ void Ros2LiveKitBridge::createImageSubscriber(const std::string &topic_name) {
               topic_name.c_str(), kImageMsgType);
 }
 
+/** Helpers **/
+
 bool Ros2LiveKitBridge::matchesTopic(const std::string &topic_name) const {
   return matchesAnyPattern(topic_name, compiled_patterns_);
 }
