@@ -332,30 +332,14 @@ FfiClient::connectAsync(const std::string &url, const std::string &token,
     } else {
       kp->clear_shared_key();
     }
-    // Only set ratchet_salt if caller overrides. Otherwise clear so Rust side
-    // uses default.
-    if (!kpo.ratchet_salt.empty() &&
-        kpo.ratchet_salt !=
-            std::vector<std::uint8_t>(
-                kDefaultRatchetSalt,
-                kDefaultRatchetSalt +
-                    std::char_traits<char>::length(kDefaultRatchetSalt))) {
+    // These proto2 fields are required; always populate them.
+    if (!kpo.ratchet_salt.empty()) {
       kp->set_ratchet_salt(bytesToString(kpo.ratchet_salt));
     } else {
-      kp->clear_ratchet_salt();
+      kp->set_ratchet_salt(std::string(kDefaultRatchetSalt));
     }
-    // Same idea for window size / tolerance: set only on override; otherwise
-    // clear.
-    if (kpo.ratchet_window_size != kDefaultRatchetWindowSize) {
-      kp->set_ratchet_window_size(kpo.ratchet_window_size);
-    } else {
-      kp->clear_ratchet_window_size();
-    }
-    if (kpo.failure_tolerance != kDefaultFailureTolerance) {
-      kp->set_failure_tolerance(kpo.failure_tolerance);
-    } else {
-      kp->clear_failure_tolerance();
-    }
+    kp->set_ratchet_window_size(kpo.ratchet_window_size);
+    kp->set_failure_tolerance(kpo.failure_tolerance);
   }
 
   // --- RTC configuration (optional) ---

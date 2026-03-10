@@ -163,8 +163,8 @@ bool Room::Connect(const std::string &url, const std::string &token,
     std::unique_ptr<E2EEManager> new_e2ee_manager;
     if (options.encryption) {
       LK_LOG_INFO("creating E2eeManager");
-      e2ee_manager_ = std::unique_ptr<E2EEManager>(
-          new E2EEManager(room_handle_->get(), options.encryption.value()));
+      new_e2ee_manager = std::unique_ptr<E2EEManager>(
+          new E2EEManager(new_room_handle->get(), options.encryption.value()));
     }
 
     // Publish all state atomically under lock
@@ -189,7 +189,10 @@ bool Room::Connect(const std::string &url, const std::string &token,
     return true;
   } catch (const std::exception &e) {
     // On error, set the connection_state_ to Disconnected
-    connection_state_ = ConnectionState::Disconnected;
+    {
+      std::lock_guard<std::mutex> g(lock_);
+      connection_state_ = ConnectionState::Disconnected;
+    }
     LK_LOG_ERROR("Room::Connect failed: {}", e.what());
     return false;
   }
@@ -209,6 +212,11 @@ RemoteParticipant *Room::remoteParticipant(const std::string &identity) const {
   std::lock_guard<std::mutex> g(lock_);
   auto it = remote_participants_.find(identity);
   return it == remote_participants_.end() ? nullptr : it->second.get();
+}
+
+E2EEManager *Room::e2eeManager() const {
+  std::lock_guard<std::mutex> g(lock_);
+  return e2ee_manager_.get();
 }
 
 std::vector<std::shared_ptr<RemoteParticipant>>
