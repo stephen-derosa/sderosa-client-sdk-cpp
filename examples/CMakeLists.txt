@@ -293,6 +293,58 @@ if(WIN32)
   endforeach()
 endif()
 
+# --- ServoControl example (bridge + SCServo_Linux) ---
+
+set(SCSERVO_DIR "/home/jetson/workspaces/SCServo_Linux")
+
+# Build SCServo as a static library from source
+add_library(SCServo STATIC
+  ${SCSERVO_DIR}/src/SMS_STS.cpp
+  ${SCSERVO_DIR}/src/SCSerial.cpp
+  ${SCSERVO_DIR}/src/SCS.cpp
+  ${SCSERVO_DIR}/src/SCSCL.cpp
+  ${SCSERVO_DIR}/src/HLSCL.cpp
+)
+target_include_directories(SCServo PUBLIC ${SCSERVO_DIR}/include)
+
+add_executable(ServoControl
+  servo_control/main.cpp
+)
+target_include_directories(ServoControl PRIVATE
+  ${EXAMPLES_PRIVATE_INCLUDE_DIRS}
+)
+target_link_libraries(ServoControl PRIVATE
+  livekit_bridge
+  nlohmann_json::nlohmann_json
+  spdlog::spdlog
+  SCServo
+)
+
+add_executable(ServoController
+  servo_control/servo_controller.cpp
+)
+target_include_directories(ServoController PRIVATE
+  ${EXAMPLES_PRIVATE_INCLUDE_DIRS}
+)
+target_link_libraries(ServoController PRIVATE
+  livekit_bridge
+  nlohmann_json::nlohmann_json
+  spdlog::spdlog
+)
+
+# Copy livekit_bridge shared library to servo example output directories
+if(UNIX AND NOT APPLE)
+  foreach(_target ServoControl ServoController)
+    add_custom_command(TARGET ${_target} POST_BUILD
+      COMMAND ${CMAKE_COMMAND} -E copy_if_different
+              "$<TARGET_FILE:livekit_bridge>"
+              "$<TARGET_FILE_DIR:${_target}>/$<TARGET_FILE_NAME:livekit_bridge>"
+      COMMENT "Copying livekit_bridge to ${_target} output directory"
+      VERBATIM
+    )
+  endforeach()
+endif()
+
 # Linux/macOS: Copy shared library to examples output directory
 if(UNIX)
   set(LIVEKIT_LIB_DIR $<TARGET_FILE_DIR:livekit>)
@@ -304,7 +356,7 @@ if(UNIX)
   endif()
   
   # Copy shared library to each example's output directory
-  foreach(EXAMPLE SimpleRoom SimpleRpc SimpleJoystickSender SimpleJoystickReceiver SimpleDataStream LoggingLevelsBasicUsage LoggingLevelsCustomSinks BridgeRobot BridgeHuman)
+  foreach(EXAMPLE SimpleRoom SimpleRpc SimpleJoystickSender SimpleJoystickReceiver SimpleDataStream LoggingLevelsBasicUsage LoggingLevelsCustomSinks BridgeRobot BridgeHuman ServoControl ServoController)
     add_custom_command(TARGET ${EXAMPLE} POST_BUILD
       COMMAND ${CMAKE_COMMAND} -E copy_if_different
               "${LIVEKIT_LIB_DIR}/${FFI_SHARED_LIB}"
@@ -314,7 +366,7 @@ if(UNIX)
     )
   endforeach()
 
-  # bridge_human_robot examples also need livekit_bridge shared library
+  # bridge examples also need livekit_bridge shared library
   foreach(EXAMPLE BridgeRobot BridgeHuman)
     add_custom_command(TARGET ${EXAMPLE} POST_BUILD
       COMMAND ${CMAKE_COMMAND} -E copy_if_different
