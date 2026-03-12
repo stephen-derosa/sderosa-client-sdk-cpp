@@ -169,6 +169,44 @@ public:
   bool isConnected() const;
 
   // ---------------------------------------------------------------
+  // RPC methods (local participant)
+  // ---------------------------------------------------------------
+
+  /**
+   * Register a local RPC method handler.
+   *
+   * @param method_name RPC method name to expose.
+   * @param handler     Handler invoked for incoming method calls.
+   * @throws std::runtime_error if the bridge is not connected.
+   */
+  void registerRpcMethod(const std::string &method_name,
+                         livekit::LocalParticipant::RpcHandler handler);
+
+  /**
+   * Unregister a previously registered local RPC method.
+   *
+   * @param method_name RPC method name to remove.
+   * @throws std::runtime_error if the bridge is not connected.
+   */
+  void unregisterRpcMethod(const std::string &method_name);
+
+  /**
+   * Perform an RPC call from the local participant to a remote participant.
+   *
+   * @param destination_identity Remote participant identity.
+   * @param method               RPC method name on the remote participant.
+   * @param payload              Request payload.
+   * @param response_timeout_sec Optional timeout in seconds.
+   * @return Response payload.
+   * @throws std::runtime_error if the bridge is not connected.
+   * @throws livekit::RpcError if remote invocation fails.
+   */
+  std::string
+  performRpc(const std::string &destination_identity, const std::string &method,
+             const std::string &payload,
+             std::optional<double> response_timeout_sec = std::nullopt);
+
+  // ---------------------------------------------------------------
   // Track creation (publishing)
   // ---------------------------------------------------------------
 
