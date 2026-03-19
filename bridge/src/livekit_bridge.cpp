@@ -118,7 +118,7 @@ bool LiveKitBridge::connect(const std::string &url, const std::string &token,
   // and eliminates the risk of deadlock if the SDK delivers delegate callbacks
   // synchronously during Connect().
   // Set the delegate before Connect() so that events (e.g.
-  // RemoteDataTrackPublished) that may be delivered during or immediately after
+  // DataTrackPublished) that may be delivered during or immediately after
   // Connect() are not dropped.
   auto delegate = std::make_unique<BridgeRoomDelegate>(*this);
   assert(delegate != nullptr);
@@ -639,7 +639,7 @@ void LiveKitBridge::onTrackUnsubscribed(const std::string &participant_identity,
   }
 }
 
-void LiveKitBridge::onRemoteDataTrackPublished(
+void LiveKitBridge::onDataTrackPublished(
     std::shared_ptr<livekit::RemoteDataTrack> track) {
   LK_LOG_INFO("[LiveKitBridge] Remote data track published: \"{}\" from \"{}\" "
               "(sid={})",

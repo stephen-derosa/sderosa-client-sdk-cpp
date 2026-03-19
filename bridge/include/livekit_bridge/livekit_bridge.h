@@ -390,7 +390,7 @@ public:
    * The callback fires on a background thread whenever a new data frame is
    * received. If the remote data track has not yet been published, the
    * callback is stored and auto-wired when the track is published (via
-   * onRemoteDataTrackPublished). If the track was already published, the
+   * onDataTrackPublished
    * reader is started immediately—mirroring the onTrackSubscribed behavior
    * for audio/video.
    *
@@ -488,8 +488,7 @@ private:
   // If a callback is registered for (identity, track_name), starts the data
   // reader thread (like onTrackSubscribed for audio/video); otherwise stores
   // the track as pending until setOnDataFrameCallback is called.
-  void
-  onRemoteDataTrackPublished(std::shared_ptr<livekit::RemoteDataTrack> track);
+  void onDataTrackPublished(std::shared_ptr<livekit::RemoteDataTrack> track);
 
   /// Close the stream and extract the thread for the caller to join
   /// (caller must hold mutex_)
