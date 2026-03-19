@@ -676,6 +676,42 @@ void LiveKitBridge::onDataTrackPublished(
   }
 }
 
+void LiveKitBridge::onDataTrackUnpublished(const std::string &sid) {
+  LK_LOG_INFO("[LiveKitBridge] Remote data track unpublished: sid={}", sid);
+
+  std::thread thread_to_join;
+  {
+    std::lock_guard<std::mutex> lock(mutex_);
+
+    // Remove from active data readers by matching SID.
+    for (auto it = active_data_readers_.begin();
+         it != active_data_readers_.end(); ++it) {
+      if (it->second.remote_track &&
+          it->second.remote_track->info().sid == sid) {
+        if (it->second.subscription) {
+          it->second.subscription->close();
+        }
+        thread_to_join = std::move(it->second.thread);
+        active_data_readers_.erase(it);
+        break;
+      }
+    }
+
+    // Remove from pending remote data tracks by matching SID.
+    for (auto it = pending_remote_data_tracks_.begin();
+         it != pending_remote_data_tracks_.end(); ++it) {
+      if (it->second && it->second->info().sid == sid) {
+        pending_remote_data_tracks_.erase(it);
+        break;
+      }
+    }
+  }
+
+  if (thread_to_join.joinable()) {
+    thread_to_join.join();
+  }
+}
+
 // ---------------------------------------------------------------
 // Internal: reader thread management
 // ---------------------------------------------------------------

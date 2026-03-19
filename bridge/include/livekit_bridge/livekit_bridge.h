@@ -490,6 +490,10 @@ private:
   // the track as pending until setOnDataFrameCallback is called.
   void onDataTrackPublished(std::shared_ptr<livekit::RemoteDataTrack> track);
 
+  // Called by BridgeRoomDelegate when a remote data track is unpublished.
+  // Tears down the active data reader (if any) or removes the pending track.
+  void onDataTrackUnpublished(const std::string &sid);
+
   /// Close the stream and extract the thread for the caller to join
   /// (caller must hold mutex_)
   std::thread extractReaderThread(const CallbackKey &key);
