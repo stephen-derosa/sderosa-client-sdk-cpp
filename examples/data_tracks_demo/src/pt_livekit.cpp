@@ -17,7 +17,7 @@
 #include "pt_livekit.h"
 #include "pt_topics.h"
 
-#include "lk_log.h"
+#include "livekit/lk_log.h"
 
 #include <nlohmann/json.hpp>
 
@@ -286,8 +286,9 @@ std::optional<PtLiveKitConfig> PtLiveKitApp::parseArgs(int argc, char *argv[]) {
 }
 
 bool PtLiveKitApp::initializeHardware() {
-  LK_LOG_INFO("[pt_livekit] Initializing pan/tilt on {} (pan-id={}, tilt-id={})",
-              config_.serial_port, config_.motor_ids[0], config_.motor_ids[1]);
+  LK_LOG_INFO(
+      "[pt_livekit] Initializing pan/tilt on {} (pan-id={}, tilt-id={})",
+      config_.serial_port, config_.motor_ids[0], config_.motor_ids[1]);
   if (!pan_tilt_.initialize(config_.run_calibration_ofs)) {
     LK_LOG_ERROR("[pt_livekit] PanTiltController initialize failed");
     return false;
@@ -329,12 +330,11 @@ bool PtLiveKitApp::connectAndPublishTracks() {
 
 bool PtLiveKitApp::registerAcquireControlRpc() {
   try {
-    bridge_.registerRpcMethod(
-        pt_topics::kAcquireControlRpc,
-        [this](const livekit::RpcInvocationData &data)
-            -> std::optional<std::string> {
-          return handleAcquireControlRpc(data);
-        });
+    bridge_.registerRpcMethod(pt_topics::kAcquireControlRpc,
+                              [this](const livekit::RpcInvocationData &data)
+                                  -> std::optional<std::string> {
+                                return handleAcquireControlRpc(data);
+                              });
     rpc_registered_ = true;
     LK_LOG_INFO("[pt_livekit] Registered RPC method '{}'",
                 pt_topics::kAcquireControlRpc);
@@ -405,7 +405,8 @@ PtLiveKitApp::handleAcquireControlRpc(const livekit::RpcInvocationData &data) {
       [this](const std::vector<std::uint8_t> &payload,
              std::optional<std::uint64_t>) { onControlCmdPayload(payload); });
   LK_LOG_INFO("[pt_livekit] Controller acquired by '{}'", data.caller_identity);
-  return std::optional<std::string>{"control acquired by " + data.caller_identity};
+  return std::optional<std::string>{"control acquired by " +
+                                    data.caller_identity};
 }
 
 void PtLiveKitApp::clearController() {
@@ -424,18 +425,21 @@ void PtLiveKitApp::clearController() {
   LK_LOG_INFO("[pt_livekit] Controller '{}' released", previous_controller);
 }
 
-void PtLiveKitApp::onControlCmdPayload(const std::vector<std::uint8_t> &payload) {
+void PtLiveKitApp::onControlCmdPayload(
+    const std::vector<std::uint8_t> &payload) {
   try {
     const json cmd = json::parse(payload.begin(), payload.end());
     const double pan_vel_rad_s = cmd.value("pan_vel", 0.0);
     const double tilt_vel_rad_s = cmd.value("tilt_vel", 0.0);
 
     const std::int16_t pan_steps_s = radPerSecToServoStepsPerSec(pan_vel_rad_s);
-    const std::int16_t tilt_steps_s = radPerSecToServoStepsPerSec(tilt_vel_rad_s);
+    const std::int16_t tilt_steps_s =
+        radPerSecToServoStepsPerSec(tilt_vel_rad_s);
 
     if (!pan_tilt_.setVelocity(kPanIndex, pan_steps_s)) {
-      LK_LOG_ERROR("[pt_livekit] Failed setting pan velocity (rad/s={}, steps/s={})",
-                   pan_vel_rad_s, pan_steps_s);
+      LK_LOG_ERROR(
+          "[pt_livekit] Failed setting pan velocity (rad/s={}, steps/s={})",
+          pan_vel_rad_s, pan_steps_s);
       return;
     }
     if (!pan_tilt_.setVelocity(kTiltIndex, tilt_steps_s)) {
@@ -490,11 +494,12 @@ int PtLiveKitApp::run() {
     return 1;
   }
 
-  const auto publish_period = std::chrono::microseconds(
-      1000000 / std::max(config_.publish_rate_hz, 1));
+  const auto publish_period =
+      std::chrono::microseconds(1000000 / std::max(config_.publish_rate_hz, 1));
   auto next_tick = std::chrono::steady_clock::now();
 
-  LK_LOG_INFO("[pt_livekit] Running publish loop at {} Hz", config_.publish_rate_hz);
+  LK_LOG_INFO("[pt_livekit] Running publish loop at {} Hz",
+              config_.publish_rate_hz);
   while (g_running_.load()) {
     next_tick += publish_period;
     publishStateTick();
@@ -523,7 +528,8 @@ void PtLiveKitApp::shutdown() {
   try {
     clearController();
   } catch (const std::exception &e) {
-    LK_LOG_WARN("[pt_livekit] Failed to clear controller callback: {}", e.what());
+    LK_LOG_WARN("[pt_livekit] Failed to clear controller callback: {}",
+                e.what());
   }
 
   if (!pan_tilt_.haltMotors()) {

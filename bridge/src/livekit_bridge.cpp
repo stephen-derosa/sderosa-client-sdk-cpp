@@ -137,8 +137,9 @@ bool LiveKitBridge::connect(const std::string &url, const std::string &token,
   const auto *local_participant = room->localParticipant();
   const std::string local_identity =
       local_participant ? local_participant->identity() : std::string{};
-  LK_LOG_INFO("[LiveKitBridge] Connected to room '{}' as '{}' (participants={})",
-              room_info.name, local_identity, room_info.num_participants);
+  LK_LOG_INFO(
+      "[LiveKitBridge] Connected to room '{}' as '{}' (participants={})",
+      room_info.name, local_identity, room_info.num_participants);
 
   // ---- Phase 3: commit under lock ----
   // room_/delegate_/connected_ are now in a consistent state.
@@ -253,38 +254,6 @@ void LiveKitBridge::disconnect() {
 bool LiveKitBridge::isConnected() const {
   std::lock_guard<std::mutex> lock(mutex_);
   return connected_;
-}
-
-void LiveKitBridge::registerRpcMethod(
-    const std::string &method_name,
-    livekit::LocalParticipant::RpcHandler handler) {
-  std::lock_guard<std::mutex> lock(mutex_);
-  if (!connected_ || !room_) {
-    throw std::runtime_error(
-        "LiveKitBridge::registerRpcMethod: not connected to a room");
-  }
-  room_->localParticipant()->registerRpcMethod(method_name, std::move(handler));
-}
-
-void LiveKitBridge::unregisterRpcMethod(const std::string &method_name) {
-  std::lock_guard<std::mutex> lock(mutex_);
-  if (!connected_ || !room_) {
-    throw std::runtime_error(
-        "LiveKitBridge::unregisterRpcMethod: not connected to a room");
-  }
-  room_->localParticipant()->unregisterRpcMethod(method_name);
-}
-
-std::string LiveKitBridge::performRpc(const std::string &destination_identity,
-                                      const std::string &method,
-                                      const std::string &payload,
-                                      std::optional<double> response_timeout_sec) {
-  std::lock_guard<std::mutex> lock(mutex_);
-  if (!connected_ || !room_) {
-    throw std::runtime_error("LiveKitBridge::performRpc: not connected to a room");
-  }
-  return room_->localParticipant()->performRpc(destination_identity, method,
-                                               payload, response_timeout_sec);
 }
 
 // ---------------------------------------------------------------
@@ -706,7 +675,8 @@ void LiveKitBridge::onDataTrackPublished(
       bool same_track_other_identity = false;
       std::string expected_identity;
       for (const auto &[cb_key, _] : data_callbacks_) {
-        if (cb_key.track_name == key.track_name && cb_key.identity != key.identity) {
+        if (cb_key.track_name == key.track_name &&
+            cb_key.identity != key.identity) {
           same_track_other_identity = true;
           expected_identity = cb_key.identity;
           break;

@@ -17,7 +17,7 @@
 #ifndef L3G4200D_IMU_H
 #define L3G4200D_IMU_H
 
-#include "lk_log.h"
+#include "livekit/lk_log.h"
 
 #include <atomic>
 #include <chrono>

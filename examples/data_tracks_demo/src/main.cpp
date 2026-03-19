@@ -16,7 +16,7 @@
 
 #include "pt_livekit.h"
 
-#include "lk_log.h"
+#include "livekit/lk_log.h"
 
 #include <exception>
 

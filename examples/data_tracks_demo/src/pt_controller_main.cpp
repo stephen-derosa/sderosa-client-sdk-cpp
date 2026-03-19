@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
+#include "livekit/lk_log.h"
 #include "livekit_bridge/livekit_bridge.h"
 #include "pt_topics.h"
-#include "lk_log.h"
 
 #include <SDL3/SDL.h>
 #include <nlohmann/json.hpp>
@@ -310,8 +310,8 @@ private:
     }
     SDL_RaiseWindow(input_window_);
     SDL_PumpEvents();
-    LK_LOG_INFO(
-        "[pt_controller] SDL input window ready. Keep it focused for controls.");
+    LK_LOG_INFO("[pt_controller] SDL input window ready. Keep it focused for "
+                "controls.");
     return true;
   }
 
@@ -375,7 +375,8 @@ private:
         LK_LOG_ERROR("[pt_controller] {} failed: {}", method, e.what());
       }
     }
-    LK_LOG_ERROR("[pt_controller] Control not acquired; teleop publishing disabled");
+    LK_LOG_ERROR(
+        "[pt_controller] Control not acquired; teleop publishing disabled");
   }
 
   void releaseControl() {
@@ -459,9 +460,8 @@ private:
     {
       std::lock_guard<std::mutex> lock(cmd_mu_);
       const auto now = Clock::now();
-      if (!cmd_dirty_ &&
-          (!motion_active ||
-           (now - last_cmd_publish_time_) < kHeldCmdRefreshPeriod)) {
+      if (!cmd_dirty_ && (!motion_active || (now - last_cmd_publish_time_) <
+                                                kHeldCmdRefreshPeriod)) {
         return;
       }
       pan_vel_rad_s = pan_vel_rad_s_;
@@ -475,7 +475,8 @@ private:
         {"tilt_vel", tilt_vel_rad_s},
     };
     const std::string msg = cmd.dump();
-    control_track_->pushFrame(std::vector<std::uint8_t>(msg.begin(), msg.end()));
+    control_track_->pushFrame(
+        std::vector<std::uint8_t>(msg.begin(), msg.end()));
   }
 
   void printLatestStates() {
