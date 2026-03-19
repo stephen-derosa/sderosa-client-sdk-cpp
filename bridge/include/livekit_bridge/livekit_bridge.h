@@ -382,6 +382,7 @@ public:
    * @return true if the track was unmuted successfully.
    */
   bool requestRemoteTrackUnmute(const std::string &destination_identity,
+                                const std::string &track_name);
   /**
    * Set the callback for data frames from a specific remote participant's
    * data track.
