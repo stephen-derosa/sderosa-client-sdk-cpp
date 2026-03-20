@@ -413,36 +413,6 @@ public:
    */
   void clearOnDataFrameCallback(const std::string &participant_identity,
                                 const std::string &track_name);
-  /**
-   * Set the callback for data frames from a specific remote participant's
-   * data track.
-   *
-   * The callback fires on a background thread whenever a new data frame is
-   * received. If the remote data track has not yet been published, the
-   * callback is stored and auto-wired when the track is published (via
-   * onDataTrackPublished
-   * reader is started immediately—mirroring the onTrackSubscribed behavior
-   * for audio/video.
-   *
-   * Data tracks are keyed by (participant_identity, track_name) rather
-   * than TrackSource, since data tracks don't have a TrackSource enum.
-   *
-   * @param participant_identity  Identity of the remote participant.
-   * @param track_name            Name of the remote data track.
-   * @param callback              Function to invoke per data frame.
-   */
-  void setOnDataFrameCallback(const std::string &participant_identity,
-                              const std::string &track_name,
-                              DataFrameCallback callback);
-
-  /**
-   * Clear the data frame callback for a specific remote participant + track
-   * name.
-   *
-   * If a reader thread is active, it is stopped and joined.
-   */
-  void clearOnDataFrameCallback(const std::string &participant_identity,
-                                const std::string &track_name);
 
 private:
   friend class BridgeRoomDelegate;

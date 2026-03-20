@@ -364,12 +364,17 @@ private:
     // Requested method name first; fallback to current robot-side spelling.
     for (const std::string method : {pt_topics::kAcquireControlRpc}) {
       try {
-        const std::string response = bridge_.performRpc(
+        const auto rpc_response = bridge_.performRpc(
             args_.robot_identity, method, R"({"acquire":true})", 5.0);
+        if (!rpc_response.has_value()) {
+          LK_LOG_ERROR("[pt_controller] {} failed: RPC response is null",
+                       method);
+          return;
+        }
         control_acquired_ = true;
         rpc_method_ = method;
         LK_LOG_INFO("[pt_controller] Control acquired via '{}' response='{}'",
-                    method, response);
+                    method, rpc_response.value());
         return;
       } catch (const std::exception &e) {
         LK_LOG_ERROR("[pt_controller] {} failed: {}", method, e.what());

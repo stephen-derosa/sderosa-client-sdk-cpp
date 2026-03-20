@@ -25,7 +25,6 @@
 #include <thread>
 
 #include "SCServo.h"
-#include "lk_log.h"
 
 /**
  * @brief Two-axis SMS/STS pan-tilt controller for STS3215-class servos.

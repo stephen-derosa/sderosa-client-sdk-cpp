@@ -15,6 +15,7 @@
  */
 
 #include "pan_tilt_controller.h"
+#include <livekit/lk_log.h>
 
 #include <chrono>
 #include <cmath>
@@ -39,8 +40,8 @@ PanTiltController::PanTiltController(
     const std::string &serial_port,
     const std::array<u8, kMotorCount> &motor_ids, const int baud)
     : serial_port_(serial_port), motor_ids_(motor_ids), baud_(baud),
-      opened_(false), watchdog_stop_requested_(false), watchdog_running_(false) {
-}
+      opened_(false), watchdog_stop_requested_(false),
+      watchdog_running_(false) {}
 
 PanTiltController::~PanTiltController() {
   stopWatchdogThread();
@@ -167,8 +168,9 @@ bool PanTiltController::setMotorAngleRelativeBlocking(
   const int id = motorId(motor_index);
   const int current_ticks = sms_sts_.ReadPos(static_cast<u8>(id));
   if (current_ticks < 0) {
-    LK_LOG_ERROR("[pan_tilt] setMotorAngleRelativeBlocking ReadPos failed for ID {}",
-                 id);
+    LK_LOG_ERROR(
+        "[pan_tilt] setMotorAngleRelativeBlocking ReadPos failed for ID {}",
+        id);
     return false;
   }
   const int target_ticks =
@@ -254,8 +256,9 @@ PanTiltController::pollState() {
   return states;
 }
 
-bool PanTiltController::waitForMotorPositionMoveComplete(
-    const int motor_index, const int target_ticks, const int timeout_ms) {
+bool PanTiltController::waitForMotorPositionMoveComplete(const int motor_index,
+                                                         const int target_ticks,
+                                                         const int timeout_ms) {
   if (!isValidMotorIndex(motor_index)) {
     return false;
   }
@@ -274,7 +277,8 @@ bool PanTiltController::waitForMotorPositionMoveComplete(
     const auto states = pollState();
     const ServoState &state = states[motor_index];
     if (!state.valid) {
-      LK_LOG_ERROR("[pan_tilt] waitForMotorPositionMoveComplete failed while polling ID {}",
+      LK_LOG_ERROR("[pan_tilt] waitForMotorPositionMoveComplete failed while "
+                   "polling ID {}",
                    id);
       return false;
     }
@@ -331,7 +335,8 @@ void PanTiltController::stopWatchdogThread() {
 }
 
 void PanTiltController::watchdogThreadMain() {
-  const auto watchdog_period = std::chrono::milliseconds(1000 / kWatchdogRateHz);
+  const auto watchdog_period =
+      std::chrono::milliseconds(1000 / kWatchdogRateHz);
   auto next_wakeup = std::chrono::steady_clock::now();
   std::array<int, kMotorCount> overcurrent_sample_counts{};
   bool torque_cut_applied = false;
@@ -340,10 +345,14 @@ void PanTiltController::watchdogThreadMain() {
     ++count;
     bool any_motor_overcurrent = false;
 
-    const auto time_since_last_user_input_velocity_set = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - last_user_input_velocity_set_time_.load());
+    const auto time_since_last_user_input_velocity_set =
+        std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::steady_clock::now() -
+            last_user_input_velocity_set_time_.load());
     if (time_since_last_user_input_velocity_set.count() > 300) {
       if (count % 10 == 0) {
-        LK_LOG_WARN("[pan_tilt] Time since last user input velocity set: {} ms", time_since_last_user_input_velocity_set.count());
+        LK_LOG_WARN("[pan_tilt] Time since last user input velocity set: {} ms",
+                    time_since_last_user_input_velocity_set.count());
       }
       haltMotors();
     }
@@ -359,9 +368,9 @@ void PanTiltController::watchdogThreadMain() {
         const int id = motorId(i);
 
         if (overcurrent_sample_counts[i] == 1) {
-          LK_LOG_WARN(
-              "[pan_tilt] Overcurrent detected on ID {}: {} mA > {} mA; halting motors",
-              id, current_milliamps, kCurrentLimitMilliamps);
+          LK_LOG_WARN("[pan_tilt] Overcurrent detected on ID {}: {} mA > {} "
+                      "mA; halting motors",
+                      id, current_milliamps, kCurrentLimitMilliamps);
           if (!haltMotors()) {
             LK_LOG_ERROR("[pan_tilt] Failed to halt motors after overcurrent");
           }
@@ -370,13 +379,13 @@ void PanTiltController::watchdogThreadMain() {
         if (!torque_cut_applied &&
             overcurrent_sample_counts[i] >=
                 kPersistentOvercurrentSamplesBeforeTorqueCut) {
-          LK_LOG_ERROR(
-              "[pan_tilt] Persistent overcurrent on ID {} after halt; disabling torque",
-              id);
+          LK_LOG_ERROR("[pan_tilt] Persistent overcurrent on ID {} after halt; "
+                       "disabling torque",
+                       id);
           for (int m = 0; m < kMotorCount; ++m) {
             if (!disableMotorTorque(m)) {
-              LK_LOG_ERROR("[pan_tilt] Failed to disable torque for motor index {}",
-                           m);
+              LK_LOG_ERROR(
+                  "[pan_tilt] Failed to disable torque for motor index {}", m);
             }
           }
           torque_cut_applied = true;
