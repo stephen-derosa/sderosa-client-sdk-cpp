@@ -35,8 +35,6 @@ target_include_directories(livekit_bridge
 target_link_libraries(livekit_bridge
   PUBLIC
     livekit
-  PRIVATE
-    spdlog::spdlog
 )
 
 target_compile_definitions(livekit_bridge
@@ -49,6 +47,22 @@ if(MSVC)
 else()
   target_compile_options(livekit_bridge PRIVATE -Wall -Wextra -Wpedantic)
 endif()
+
+# --- Install ---
+include(GNUInstallDirs)
+
+install(TARGETS livekit_bridge
+  EXPORT LiveKitTargets
+  RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+  ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+  INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+)
+
+install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/include/"
+  DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}"
+  FILES_MATCHING PATTERN "*.h" PATTERN "*.hpp"
+)
 
 # --- Tests ---
 # Bridge tests default to OFF. They are automatically enabled when the parent
