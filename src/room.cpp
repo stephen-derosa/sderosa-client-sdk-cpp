@@ -451,13 +451,15 @@ std::thread Room::extractDataReaderThread(const DataCallbackKey &key) {
   if (it == active_data_readers_.end()) {
     return {};
   }
-  auto &reader = it->second;
-  if (reader.subscription) {
-    reader.subscription->close();
-  }
-  auto thread = std::move(reader.thread);
+  auto reader = std::move(it->second);
   active_data_readers_.erase(it);
-  return thread;
+  {
+    std::lock_guard<std::mutex> guard(reader->sub_mutex);
+    if (reader->subscription) {
+      reader->subscription->close();
+    }
+  }
+  return std::move(reader->thread);
 }
 
 std::thread Room::startDataReader(const DataCallbackKey &key,
@@ -473,30 +475,53 @@ std::thread Room::startDataReader(const DataCallbackKey &key,
     return old_thread;
   }
 
-  std::shared_ptr<DataTrackSubscription> subscription;
-  try {
-    subscription = track->subscribe();
-  } catch (const std::exception &e) {
-    LK_LOG_ERROR("Failed to subscribe to data track \"{}\" from \"{}\": {}",
-                 key.track_name, key.participant_identity, e.what());
-    return old_thread;
-  }
+  LK_LOG_INFO("[Room] Starting data reader for \"{}\" track=\"{}\"",
+              key.participant_identity, key.track_name);
 
-  ActiveDataReader reader;
-  reader.remote_track = track;
-  reader.subscription = subscription;
-  auto sub_copy = subscription;
-  reader.thread = std::thread([sub_copy, cb]() {
+  // subscribe() is async over FFI — it sends a request and blocks on a future
+  // whose response arrives via LivekitFfiCallback.  If we are already on the
+  // FFI callback thread (e.g. inside kDataTrackPublished handling), blocking
+  // here would deadlock.  The reader thread performs subscribe() + read loop
+  // so the callback thread is never blocked.
+  auto reader = std::make_shared<ActiveDataReader>();
+  reader->remote_track = track;
+  auto identity = key.participant_identity;
+  auto track_name = key.track_name;
+  reader->thread = std::thread([reader, track, cb, identity, track_name]() {
+    LK_LOG_INFO("[Room] Data reader thread: subscribing to \"{}\" "
+                "track=\"{}\"",
+                identity, track_name);
+    std::shared_ptr<DataTrackSubscription> subscription;
+    try {
+      subscription = track->subscribe();
+    } catch (const std::exception &e) {
+      LK_LOG_ERROR("Failed to subscribe to data track \"{}\" from \"{}\": {}",
+                   track_name, identity, e.what());
+      return;
+    }
+    LK_LOG_INFO("[Room] Data reader thread: subscribed to \"{}\" track=\"{}\"",
+                identity, track_name);
+
+    {
+      std::lock_guard<std::mutex> guard(reader->sub_mutex);
+      reader->subscription = subscription;
+    }
+
+    LK_LOG_INFO("[Room] Data reader thread: entering read loop for \"{}\" "
+                "track=\"{}\"",
+                identity, track_name);
     DataFrame frame;
-    while (sub_copy->read(frame)) {
+    while (subscription->read(frame)) {
       try {
         cb(frame.payload, frame.user_timestamp);
       } catch (const std::exception &e) {
         LK_LOG_ERROR("Data frame callback exception: {}", e.what());
       }
     }
+    LK_LOG_INFO("[Room] Data reader thread exiting for \"{}\" track=\"{}\"",
+                identity, track_name);
   });
-  active_data_readers_[key] = std::move(reader);
+  active_data_readers_[key] = reader;
   return old_thread;
 }
 
@@ -518,11 +543,14 @@ void Room::stopAllReaders() {
     active_readers_.clear();
 
     for (auto &[key, reader] : active_data_readers_) {
-      if (reader.subscription) {
-        reader.subscription->close();
+      {
+        std::lock_guard<std::mutex> guard(reader->sub_mutex);
+        if (reader->subscription) {
+          reader->subscription->close();
+        }
       }
-      if (reader.thread.joinable()) {
-        threads.push_back(std::move(reader.thread));
+      if (reader->thread.joinable()) {
+        threads.push_back(std::move(reader->thread));
       }
     }
     active_data_readers_.clear();
@@ -966,12 +994,16 @@ void Room::OnEvent(const FfiEvent &event) {
         std::lock_guard<std::mutex> guard(lock_);
         for (auto it = active_data_readers_.begin();
              it != active_data_readers_.end(); ++it) {
-          if (it->second.remote_track &&
-              it->second.remote_track->info().sid == dtu.sid()) {
-            if (it->second.subscription) {
-              it->second.subscription->close();
+          auto &reader = it->second;
+          if (reader->remote_track &&
+              reader->remote_track->info().sid == dtu.sid()) {
+            {
+              std::lock_guard<std::mutex> sub_guard(reader->sub_mutex);
+              if (reader->subscription) {
+                reader->subscription->close();
+              }
             }
-            old_thread = std::move(it->second.thread);
+            old_thread = std::move(reader->thread);
             active_data_readers_.erase(it);
             break;
           }
