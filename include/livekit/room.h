@@ -55,12 +55,16 @@ using VideoFrameCallback =
     std::function<void(const VideoFrame &frame, std::int64_t timestamp_us)>;
 
 /// Callback type for incoming data track frames.
-/// Invoked on a dedicated reader thread per (participant, track_name) pair.
+/// Invoked on a dedicated reader thread per subscription.
 /// @param payload        Raw binary data received.
 /// @param user_timestamp Optional application-defined timestamp from sender.
 using DataFrameCallback =
     std::function<void(const std::vector<std::uint8_t> &payload,
                        std::optional<std::uint64_t> user_timestamp)>;
+
+/// Opaque identifier returned by addOnDataFrameCallback, used to remove an
+/// individual subscription via removeOnDataFrameCallback.
+using DataFrameCallbackId = std::uint64_t;
 
 struct E2EEOptions;
 class E2EEManager;
@@ -324,38 +328,35 @@ public:
                                  TrackSource source);
 
   /**
-   * Set a callback for data frames from a specific remote participant's
+   * Add a callback for data frames from a specific remote participant's
    * data track.
    *
-   * The callback fires on a background thread whenever a new data frame is
-   * received. If the remote data track has not yet been published, the
-   * callback is stored and auto-wired when the track appears (via
-   * DataTrackPublished).
+   * Multiple callbacks may be registered for the same (participant,
+   * track_name) pair; each one creates an independent FFI subscription.
    *
-   * Data tracks are keyed by (participant_identity, track_name) rather
-   * than TrackSource, since data tracks don't have a TrackSource enum.
-   *
-   * Only one callback may exist per (participant, track_name) pair.
-   * Re-calling with the same pair replaces the previous callback.
+   * The callback fires on a dedicated background thread. If the remote
+   * data track has not yet been published, the callback is stored and
+   * auto-wired when the track appears (via DataTrackPublished).
    *
    * @param participant_identity  Identity of the remote participant.
    * @param track_name            Name of the remote data track.
    * @param callback              Function to invoke per data frame.
+   * @return An opaque ID that can later be passed to
+   *         removeOnDataFrameCallback() to tear down this subscription.
    */
-  void setOnDataFrameCallback(const std::string &participant_identity,
-                              const std::string &track_name,
-                              DataFrameCallback callback);
+  DataFrameCallbackId addOnDataFrameCallback(
+      const std::string &participant_identity,
+      const std::string &track_name, DataFrameCallback callback);
 
   /**
-   * Clear the data frame callback for a specific (participant, track_name)
-   * pair. Stops and joins any active reader thread.
-   * No-op if no callback is registered for this key.
+   * Remove a data frame callback previously registered via
+   * addOnDataFrameCallback(). Stops and joins the active reader thread
+   * for this subscription.
+   * No-op if the ID is not (or no longer) registered.
    *
-   * @param participant_identity  Identity of the remote participant.
-   * @param track_name            Name of the remote data track.
+   * @param id  The identifier returned by addOnDataFrameCallback().
    */
-  void clearOnDataFrameCallback(const std::string &participant_identity,
-                                const std::string &track_name);
+  void removeOnDataFrameCallback(DataFrameCallbackId id);
 
 private:
   friend class RoomCallbackTest;
@@ -437,6 +438,11 @@ private:
     }
   };
 
+  struct RegisteredDataCallback {
+    DataCallbackKey key;
+    DataFrameCallback callback;
+  };
+
   struct ActiveDataReader {
     std::shared_ptr<RemoteDataTrack> remote_track;
     /// Guards \c subscription, which is set by the reader thread after
@@ -450,19 +456,22 @@ private:
       audio_callbacks_;
   std::unordered_map<CallbackKey, RegisteredVideoCallback, CallbackKeyHash>
       video_callbacks_;
-  std::unordered_map<DataCallbackKey, DataFrameCallback, DataCallbackKeyHash>
+
+  DataFrameCallbackId next_data_callback_id_{1};
+  std::unordered_map<DataFrameCallbackId, RegisteredDataCallback>
       data_callbacks_;
 
   std::unordered_map<CallbackKey, ActiveReader, CallbackKeyHash>
       active_readers_;
-  std::unordered_map<DataCallbackKey, std::shared_ptr<ActiveDataReader>,
-                     DataCallbackKeyHash>
+  std::unordered_map<DataFrameCallbackId, std::shared_ptr<ActiveDataReader>>
       active_data_readers_;
 
-  /// Remote data tracks published before a frame callback was registered.
+  /// Currently published remote data tracks, keyed by (participant, name).
+  /// Kept alive from kDataTrackPublished until kDataTrackUnpublished so that
+  /// late-registered callbacks can subscribe immediately.
   std::unordered_map<DataCallbackKey, std::shared_ptr<RemoteDataTrack>,
                      DataCallbackKeyHash>
-      pending_remote_data_tracks_;
+      remote_data_tracks_;
 
   static constexpr int kMaxActiveReaders = 20;
 
@@ -470,7 +479,7 @@ private:
   // returns the old reader thread (which the caller must join outside the
   // lock).
   std::thread extractReaderThread(const CallbackKey &key);
-  std::thread extractDataReaderThread(const DataCallbackKey &key);
+  std::thread extractDataReaderThread(DataFrameCallbackId id);
 
   // Must be called with lock_ held. Returns old reader thread if one existed.
   std::thread startAudioReader(const CallbackKey &key,
@@ -481,7 +490,8 @@ private:
                                const std::shared_ptr<Track> &track,
                                VideoFrameCallback cb,
                                const VideoStream::Options &opts);
-  std::thread startDataReader(const DataCallbackKey &key,
+  std::thread startDataReader(DataFrameCallbackId id,
+                              const DataCallbackKey &key,
                               const std::shared_ptr<RemoteDataTrack> &track,
                               DataFrameCallback cb);
 
