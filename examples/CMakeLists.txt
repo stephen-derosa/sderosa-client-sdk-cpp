@@ -61,8 +61,6 @@ set(EXAMPLES_BRIDGE
   BridgeMuteReceiver
   BridgeRpcCaller
   BridgeRpcReceiver
-  PTLiveKit
-  PTController
 )
 
 # Examples that use SDL3 (need SDL3 lib copied on Linux; SimpleRoom is handled separately above)
