@@ -439,7 +439,10 @@ private:
 
   struct ActiveDataReader {
     std::shared_ptr<RemoteDataTrack> remote_track;
-    std::shared_ptr<DataTrackSubscription> subscription;
+    /// Guards \c subscription, which is set by the reader thread after
+    /// subscribe() completes.  Teardown paths lock this to call close().
+    std::mutex sub_mutex;
+    std::shared_ptr<DataTrackSubscription> subscription; // guarded by sub_mutex
     std::thread thread;
   };
 
@@ -452,7 +455,8 @@ private:
 
   std::unordered_map<CallbackKey, ActiveReader, CallbackKeyHash>
       active_readers_;
-  std::unordered_map<DataCallbackKey, ActiveDataReader, DataCallbackKeyHash>
+  std::unordered_map<DataCallbackKey, std::shared_ptr<ActiveDataReader>,
+                     DataCallbackKeyHash>
       active_data_readers_;
 
   /// Remote data tracks published before a frame callback was registered.
