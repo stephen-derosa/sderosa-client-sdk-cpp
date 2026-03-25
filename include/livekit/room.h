@@ -17,9 +17,7 @@
 #ifndef LIVEKIT_ROOM_H
 #define LIVEKIT_ROOM_H
 
-#include "livekit/audio_stream.h"
 #include "livekit/data_stream.h"
-#include "livekit/data_track_subscription.h"
 #include "livekit/e2ee.h"
 #include "livekit/ffi_handle.h"
 #include "livekit/room_event_types.h"
@@ -34,36 +32,11 @@
 
 namespace livekit {
 
-class AudioFrame;
-class VideoFrame;
 class RoomDelegate;
-class RemoteDataTrack;
-class DataTrackSubscription;
 struct RoomInfoData;
 namespace proto {
 class FfiEvent;
 }
-
-/// Callback type for incoming audio frames.
-/// Invoked on a dedicated reader thread per (participant, source) pair.
-using AudioFrameCallback = std::function<void(const AudioFrame &)>;
-
-/// Callback type for incoming video frames.
-/// Invoked on a dedicated reader thread per (participant, source) pair.
-using VideoFrameCallback =
-    std::function<void(const VideoFrame &frame, std::int64_t timestamp_us)>;
-
-/// Callback type for incoming data track frames.
-/// Invoked on a dedicated reader thread per subscription.
-/// @param payload        Raw binary data received.
-/// @param user_timestamp Optional application-defined timestamp from sender.
-using DataFrameCallback =
-    std::function<void(const std::vector<std::uint8_t> &payload,
-                       std::optional<std::uint64_t> user_timestamp)>;
-
-/// Opaque identifier returned by addOnDataFrameCallback, used to remove an
-/// individual subscription via removeOnDataFrameCallback.
-using DataFrameCallbackId = std::uint64_t;
 
 struct E2EEOptions;
 class E2EEManager;
@@ -342,10 +315,13 @@ public:
    * @param callback              Function to invoke per data frame.
    * @return An opaque ID that can later be passed to
    *         removeOnDataFrameCallback() to tear down this subscription.
+   * If the subscription thread dispatcher is not available, returns
+   * std::numeric_limits<DataFrameCallbackId>::max().
    */
-  DataFrameCallbackId addOnDataFrameCallback(
-      const std::string &participant_identity,
-      const std::string &track_name, DataFrameCallback callback);
+  DataFrameCallbackId
+  addOnDataFrameCallback(const std::string &participant_identity,
+                         const std::string &track_name,
+                         DataFrameCallback callback);
 
   /**
    * Remove a data frame callback previously registered via
@@ -383,120 +359,6 @@ private:
   int listener_id_{0};
 
   void OnEvent(const proto::FfiEvent &event);
-
-  // -------------------------------------------------------------------
-  // Frame callback internals
-  // -------------------------------------------------------------------
-
-  struct CallbackKey {
-    std::string participant_identity;
-    TrackSource source;
-    bool operator==(const CallbackKey &o) const {
-      return participant_identity == o.participant_identity &&
-             source == o.source;
-    }
-  };
-
-  struct CallbackKeyHash {
-    std::size_t operator()(const CallbackKey &k) const {
-      auto h1 = std::hash<std::string>{}(k.participant_identity);
-      auto h2 = std::hash<int>{}(static_cast<int>(k.source));
-      return h1 ^ (h2 << 1);
-    }
-  };
-
-  struct ActiveReader {
-    std::shared_ptr<AudioStream> audio_stream;
-    std::shared_ptr<VideoStream> video_stream;
-    std::thread thread;
-  };
-
-  struct RegisteredAudioCallback {
-    AudioFrameCallback callback;
-    AudioStream::Options options;
-  };
-
-  struct RegisteredVideoCallback {
-    VideoFrameCallback callback;
-    VideoStream::Options options;
-  };
-
-  struct DataCallbackKey {
-    std::string participant_identity;
-    std::string track_name;
-    bool operator==(const DataCallbackKey &o) const {
-      return participant_identity == o.participant_identity &&
-             track_name == o.track_name;
-    }
-  };
-
-  struct DataCallbackKeyHash {
-    std::size_t operator()(const DataCallbackKey &k) const {
-      auto h1 = std::hash<std::string>{}(k.participant_identity);
-      auto h2 = std::hash<std::string>{}(k.track_name);
-      return h1 ^ (h2 << 1);
-    }
-  };
-
-  struct RegisteredDataCallback {
-    DataCallbackKey key;
-    DataFrameCallback callback;
-  };
-
-  struct ActiveDataReader {
-    std::shared_ptr<RemoteDataTrack> remote_track;
-    /// Guards \c subscription, which is set by the reader thread after
-    /// subscribe() completes.  Teardown paths lock this to call close().
-    std::mutex sub_mutex;
-    std::shared_ptr<DataTrackSubscription> subscription; // guarded by sub_mutex
-    std::thread thread;
-  };
-
-  std::unordered_map<CallbackKey, RegisteredAudioCallback, CallbackKeyHash>
-      audio_callbacks_;
-  std::unordered_map<CallbackKey, RegisteredVideoCallback, CallbackKeyHash>
-      video_callbacks_;
-
-  DataFrameCallbackId next_data_callback_id_{1};
-  std::unordered_map<DataFrameCallbackId, RegisteredDataCallback>
-      data_callbacks_;
-
-  std::unordered_map<CallbackKey, ActiveReader, CallbackKeyHash>
-      active_readers_;
-  std::unordered_map<DataFrameCallbackId, std::shared_ptr<ActiveDataReader>>
-      active_data_readers_;
-
-  /// Currently published remote data tracks, keyed by (participant, name).
-  /// Kept alive from kDataTrackPublished until kDataTrackUnpublished so that
-  /// late-registered callbacks can subscribe immediately.
-  std::unordered_map<DataCallbackKey, std::shared_ptr<RemoteDataTrack>,
-                     DataCallbackKeyHash>
-      remote_data_tracks_;
-
-  static constexpr int kMaxActiveReaders = 20;
-
-  // Must be called with lock_ held. Closes the stream for the given key and
-  // returns the old reader thread (which the caller must join outside the
-  // lock).
-  std::thread extractReaderThread(const CallbackKey &key);
-  std::thread extractDataReaderThread(DataFrameCallbackId id);
-
-  // Must be called with lock_ held. Returns old reader thread if one existed.
-  std::thread startAudioReader(const CallbackKey &key,
-                               const std::shared_ptr<Track> &track,
-                               AudioFrameCallback cb,
-                               const AudioStream::Options &opts);
-  std::thread startVideoReader(const CallbackKey &key,
-                               const std::shared_ptr<Track> &track,
-                               VideoFrameCallback cb,
-                               const VideoStream::Options &opts);
-  std::thread startDataReader(DataFrameCallbackId id,
-                              const DataCallbackKey &key,
-                              const std::shared_ptr<RemoteDataTrack> &track,
-                              DataFrameCallback cb);
-
-  // Stops all readers (closes streams, joins threads). Must NOT hold lock_.
-  void stopAllReaders();
 };
 } // namespace livekit
 
