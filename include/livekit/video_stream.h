@@ -19,6 +19,7 @@
 #include <condition_variable>
 #include <cstdint>
 #include <deque>
+#include <functional>
 #include <memory>
 #include <mutex>
 #include <optional>
@@ -36,7 +37,10 @@ struct VideoFrameEvent {
   VideoFrame frame;
   std::int64_t timestamp_us;
   VideoRotation rotation;
+  std::optional<VideoFrameMetadata> metadata;
 };
+
+using VideoFrameEventCallback = std::function<void(const VideoFrameEvent &)>;
 
 namespace proto {
 class FfiEvent;

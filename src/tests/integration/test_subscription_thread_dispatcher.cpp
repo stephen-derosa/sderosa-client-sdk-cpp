@@ -43,6 +43,10 @@ protected:
   static auto &videoCallbacks(SubscriptionThreadDispatcher &dispatcher) {
     return dispatcher.video_callbacks_;
   }
+  static const auto &
+  videoCallback(SubscriptionThreadDispatcher &dispatcher, const CallbackKey &key) {
+    return dispatcher.video_callbacks_.at(key);
+  }
   static auto &activeReaders(SubscriptionThreadDispatcher &dispatcher) {
     return dispatcher.active_readers_;
   }
@@ -156,6 +160,24 @@ TEST_F(SubscriptionThreadDispatcherTest, SetVideoCallbackStoresRegistration) {
                                      [](const VideoFrame &, std::int64_t) {});
 
   EXPECT_EQ(videoCallbacks(dispatcher).size(), 1u);
+  const auto &callback =
+      videoCallback(dispatcher, {"alice", TrackSource::SOURCE_CAMERA});
+  EXPECT_TRUE(static_cast<bool>(callback.legacy_callback));
+  EXPECT_FALSE(static_cast<bool>(callback.event_callback));
+}
+
+TEST_F(SubscriptionThreadDispatcherTest,
+       SetVideoEventCallbackStoresRegistration) {
+  SubscriptionThreadDispatcher dispatcher;
+  dispatcher.setOnVideoFrameEventCallback(
+      "alice", TrackSource::SOURCE_CAMERA,
+      [](const VideoFrameEvent &) {});
+
+  EXPECT_EQ(videoCallbacks(dispatcher).size(), 1u);
+  const auto &callback =
+      videoCallback(dispatcher, {"alice", TrackSource::SOURCE_CAMERA});
+  EXPECT_FALSE(static_cast<bool>(callback.legacy_callback));
+  EXPECT_TRUE(static_cast<bool>(callback.event_callback));
 }
 
 TEST_F(SubscriptionThreadDispatcherTest, ClearAudioCallbackRemovesRegistration) {
@@ -172,6 +194,18 @@ TEST_F(SubscriptionThreadDispatcherTest, ClearVideoCallbackRemovesRegistration) 
   SubscriptionThreadDispatcher dispatcher;
   dispatcher.setOnVideoFrameCallback("alice", TrackSource::SOURCE_CAMERA,
                                      [](const VideoFrame &, std::int64_t) {});
+  ASSERT_EQ(videoCallbacks(dispatcher).size(), 1u);
+
+  dispatcher.clearOnVideoFrameCallback("alice", TrackSource::SOURCE_CAMERA);
+  EXPECT_EQ(videoCallbacks(dispatcher).size(), 0u);
+}
+
+TEST_F(SubscriptionThreadDispatcherTest,
+       ClearVideoEventCallbackRemovesRegistration) {
+  SubscriptionThreadDispatcher dispatcher;
+  dispatcher.setOnVideoFrameEventCallback(
+      "alice", TrackSource::SOURCE_CAMERA,
+      [](const VideoFrameEvent &) {});
   ASSERT_EQ(videoCallbacks(dispatcher).size(), 1u);
 
   dispatcher.clearOnVideoFrameCallback("alice", TrackSource::SOURCE_CAMERA);
@@ -213,6 +247,48 @@ TEST_F(SubscriptionThreadDispatcherTest, OverwriteVideoCallbackKeepsSingleEntry)
 }
 
 TEST_F(SubscriptionThreadDispatcherTest,
+       OverwriteTrackNameAudioCallbackKeepsSingleEntry) {
+  SubscriptionThreadDispatcher dispatcher;
+  dispatcher.setOnAudioFrameCallback("alice", "mic-main",
+                                     [](const AudioFrame &) {});
+  dispatcher.setOnAudioFrameCallback("alice", "mic-main",
+                                     [](const AudioFrame &) {});
+
+  EXPECT_EQ(audioCallbacks(dispatcher).size(), 1u);
+       VideoEventCallbackOverwritesLegacyCallbackForSameKey) {
+  SubscriptionThreadDispatcher dispatcher;
+  dispatcher.setOnVideoFrameCallback("alice", TrackSource::SOURCE_CAMERA,
+                                     [](const VideoFrame &, std::int64_t) {});
+  dispatcher.setOnVideoFrameEventCallback(
+      "alice", TrackSource::SOURCE_CAMERA,
+      [](const VideoFrameEvent &) {});
+
+  EXPECT_EQ(videoCallbacks(dispatcher).size(), 1u);
+  const auto &callback =
+      videoCallback(dispatcher, {"alice", TrackSource::SOURCE_CAMERA});
+  EXPECT_FALSE(static_cast<bool>(callback.legacy_callback));
+  EXPECT_TRUE(static_cast<bool>(callback.event_callback));
+}
+
+TEST_F(SubscriptionThreadDispatcherTest,
+       LegacyVideoCallbackOverwritesEventCallbackForSameKey) {
+  SubscriptionThreadDispatcher dispatcher;
+  dispatcher.setOnVideoFrameEventCallback(
+      "alice", TrackSource::SOURCE_CAMERA,
+      [](const VideoFrameEvent &) {});
+  dispatcher.setOnVideoFrameCallback("alice", TrackSource::SOURCE_CAMERA,
+                                     [](const VideoFrame &, std::int64_t) {});
+
+  EXPECT_EQ(videoCallbacks(dispatcher).size(), 1u);
+  const auto &callback =
+      videoCallback(dispatcher, {"alice", TrackSource::SOURCE_CAMERA});
+  EXPECT_TRUE(static_cast<bool>(callback.legacy_callback));
+  EXPECT_FALSE(static_cast<bool>(callback.event_callback));
+>>>>>>> Stashed changes
+}
+
+TEST_F(SubscriptionThreadDispatcherTest,
+>>>>>>> 82adc67 (Bring in VideoFrame FrameMetadata from FFI)
        MultipleDistinctCallbacksAreIndependent) {
   SubscriptionThreadDispatcher dispatcher;
   dispatcher.setOnAudioFrameCallback("alice", TrackSource::SOURCE_MICROPHONE,
