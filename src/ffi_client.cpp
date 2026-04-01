@@ -126,7 +126,7 @@ std::optional<FfiClient::AsyncId> ExtractAsyncId(const proto::FfiEvent &event) {
   case E::kAudioStreamEvent:
   case E::kByteStreamReaderEvent:
   case E::kTextStreamReaderEvent:
-  case E::kDataTrackSubscriptionEvent:
+  case E::kDataTrackStreamEvent:
   case E::kRpcMethodInvocation:
   case E::kLogs:
   case E::kPanic:
@@ -637,8 +637,9 @@ FfiClient::publishDataTrackAsync(std::uint64_t local_participant_handle,
         const auto &cb = event.publish_data_track();
         if (cb.has_error()) {
           pr.set_value(
-              Result<proto::OwnedLocalDataTrack, PublishDataTrackError>::
-                  failure(PublishDataTrackError::fromProto(cb.error())));
+              Result<proto::OwnedLocalDataTrack,
+                     PublishDataTrackError>::failure(PublishDataTrackError{
+                  PublishDataTrackErrorCode::INTERNAL, cb.error()}));
           return;
         }
         if (!cb.has_track()) {
@@ -690,7 +691,7 @@ FfiClient::publishDataTrackAsync(std::uint64_t local_participant_handle,
   return fut;
 }
 
-Result<proto::OwnedDataTrackSubscription, SubscribeDataTrackError>
+Result<proto::OwnedDataTrackStream, SubscribeDataTrackError>
 FfiClient::subscribeDataTrack(std::uint64_t track_handle,
                               std::optional<std::uint32_t> buffer_size) {
   proto::FfiRequest req;
@@ -704,26 +705,25 @@ FfiClient::subscribeDataTrack(std::uint64_t track_handle,
   try {
     proto::FfiResponse resp = sendRequest(req);
     if (!resp.has_subscribe_data_track()) {
-      return Result<proto::OwnedDataTrackSubscription,
+      return Result<proto::OwnedDataTrackStream,
                     SubscribeDataTrackError>::failure(SubscribeDataTrackError{
           SubscribeDataTrackErrorCode::PROTOCOL_ERROR,
           "FfiResponse missing subscribe_data_track"});
     }
-    if (!resp.subscribe_data_track().has_subscription()) {
-      return Result<proto::OwnedDataTrackSubscription,
+    if (!resp.subscribe_data_track().has_stream()) {
+      return Result<proto::OwnedDataTrackStream,
                     SubscribeDataTrackError>::failure(SubscribeDataTrackError{
           SubscribeDataTrackErrorCode::PROTOCOL_ERROR,
-          "FfiResponse subscribe_data_track missing subscription"});
+          "FfiResponse subscribe_data_track missing stream"});
     }
-    proto::OwnedDataTrackSubscription sub =
-        resp.subscribe_data_track().subscription();
-    return Result<proto::OwnedDataTrackSubscription,
+    proto::OwnedDataTrackStream sub = resp.subscribe_data_track().stream();
+    return Result<proto::OwnedDataTrackStream,
                   SubscribeDataTrackError>::success(std::move(sub));
   } catch (...) {
     try {
       throw;
     } catch (const std::exception &e) {
-      return Result<proto::OwnedDataTrackSubscription,
+      return Result<proto::OwnedDataTrackStream,
                     SubscribeDataTrackError>::failure(SubscribeDataTrackError{
           SubscribeDataTrackErrorCode::INTERNAL, e.what()});
     }

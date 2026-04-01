@@ -46,10 +46,10 @@ bool RemoteDataTrack::isPublished() const {
   return resp.remote_data_track_is_published().is_published();
 }
 
-Result<std::shared_ptr<DataTrackSubscription>, SubscribeDataTrackError>
-RemoteDataTrack::subscribe(const DataTrackSubscription::Options &options) {
+Result<std::shared_ptr<DataTrackStream>, SubscribeDataTrackError>
+RemoteDataTrack::subscribe(const DataTrackStream::Options &options) {
   if (!handle_.valid()) {
-    return Result<std::shared_ptr<DataTrackSubscription>,
+    return Result<std::shared_ptr<DataTrackStream>,
                   SubscribeDataTrackError>::failure(SubscribeDataTrackError{
         SubscribeDataTrackErrorCode::INVALID_HANDLE,
         "RemoteDataTrack::subscribe: invalid FFI "
@@ -59,19 +59,18 @@ RemoteDataTrack::subscribe(const DataTrackSubscription::Options &options) {
   auto result = FfiClient::instance().subscribeDataTrack(
       static_cast<std::uint64_t>(handle_.get()), options.buffer_size);
   if (!result) {
-    return Result<std::shared_ptr<DataTrackSubscription>,
+    return Result<std::shared_ptr<DataTrackStream>,
                   SubscribeDataTrackError>::failure(std::move(result).error());
   }
 
-  proto::OwnedDataTrackSubscription owned_sub = result.value();
+  proto::OwnedDataTrackStream owned_sub = result.value();
 
   FfiHandle sub_handle(static_cast<uintptr_t>(owned_sub.handle().id()));
 
-  auto subscription =
-      std::shared_ptr<DataTrackSubscription>(new DataTrackSubscription());
-  subscription->init(std::move(sub_handle));
-  return Result<std::shared_ptr<DataTrackSubscription>,
-                SubscribeDataTrackError>::success(std::move(subscription));
+  auto stream = std::shared_ptr<DataTrackStream>(new DataTrackStream());
+  stream->init(std::move(sub_handle));
+  return Result<std::shared_ptr<DataTrackStream>,
+                SubscribeDataTrackError>::success(std::move(stream));
 }
 
 } // namespace livekit

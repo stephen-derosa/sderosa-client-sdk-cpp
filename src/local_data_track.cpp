@@ -24,16 +24,6 @@
 
 namespace livekit {
 
-namespace {
-
-LocalDataTrackTryPushError
-makeInternalDataTrackTryPushError(const std::string &message) {
-  return LocalDataTrackTryPushError{LocalDataTrackTryPushErrorCode::INTERNAL,
-                                    message};
-}
-
-} // namespace
-
 LocalDataTrack::LocalDataTrack(const proto::OwnedLocalDataTrack &owned)
     : handle_(static_cast<uintptr_t>(owned.handle().id())) {
   const auto &pi = owned.info();
@@ -43,7 +33,7 @@ LocalDataTrack::LocalDataTrack(const proto::OwnedLocalDataTrack &owned)
 }
 
 Result<void, LocalDataTrackTryPushError>
-LocalDataTrack::tryPush(const DataFrame &frame) {
+LocalDataTrack::tryPush(const DataTrackFrame &frame) {
   if (!handle_.valid()) {
     return Result<void, LocalDataTrackTryPushError>::failure(
         LocalDataTrackTryPushError{
@@ -65,19 +55,21 @@ LocalDataTrack::tryPush(const DataFrame &frame) {
     const auto &r = resp.local_data_track_try_push();
     if (r.has_error()) {
       return Result<void, LocalDataTrackTryPushError>::failure(
-          LocalDataTrackTryPushError::fromProto(r.error()));
+          LocalDataTrackTryPushError{LocalDataTrackTryPushErrorCode::INTERNAL,
+                                     r.error()});
     }
     return Result<void, LocalDataTrackTryPushError>::success();
   } catch (const std::exception &e) {
     return Result<void, LocalDataTrackTryPushError>::failure(
-        makeInternalDataTrackTryPushError(e.what()));
+        LocalDataTrackTryPushError{LocalDataTrackTryPushErrorCode::INTERNAL,
+                                   e.what()});
   }
 }
 
 Result<void, LocalDataTrackTryPushError>
 LocalDataTrack::tryPush(std::vector<std::uint8_t> &&payload,
                         std::optional<std::uint64_t> user_timestamp) {
-  DataFrame frame;
+  DataTrackFrame frame;
   frame.payload = std::move(payload);
   frame.user_timestamp = user_timestamp;
   return tryPush(frame);

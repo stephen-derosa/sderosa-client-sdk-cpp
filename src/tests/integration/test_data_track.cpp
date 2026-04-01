@@ -29,7 +29,7 @@
 #include <condition_variable>
 #include <exception>
 #include <future>
-#include <livekit/data_track_subscription.h>
+#include <livekit/data_track_stream.h>
 #include <livekit/e2ee.h>
 #include <livekit/remote_data_track.h>
 #include <tuple>
@@ -117,7 +117,7 @@ requirePublishedTrack(LocalParticipant *participant, const std::string &name) {
   return result.value();
 }
 
-std::shared_ptr<DataTrackSubscription>
+std::shared_ptr<DataTrackStream>
 requireSubscription(const std::shared_ptr<RemoteDataTrack> &track) {
   auto result = track->subscribe();
   if (!result) {
@@ -174,16 +174,16 @@ private:
   std::vector<std::shared_ptr<RemoteDataTrack>> tracks_;
 };
 
-DataFrame
-readFrameWithTimeout(const std::shared_ptr<DataTrackSubscription> &subscription,
+DataTrackFrame
+readFrameWithTimeout(const std::shared_ptr<DataTrackStream> &subscription,
                      std::chrono::milliseconds timeout) {
-  std::promise<DataFrame> frame_promise;
+  std::promise<DataTrackFrame> frame_promise;
   auto future = frame_promise.get_future();
 
   std::thread reader([subscription,
                       promise = std::move(frame_promise)]() mutable {
     try {
-      DataFrame frame;
+      DataTrackFrame frame;
       if (!subscription->read(frame)) {
         throw std::runtime_error("Subscription ended before a frame arrived");
       }
@@ -282,7 +282,7 @@ TEST_P(DataTrackTransportTest, PublishesAndReceivesFramesEndToEnd) {
   std::thread subscriber([&]() {
     try {
       size_t received_count = 0;
-      DataFrame frame;
+      DataTrackFrame frame;
       while (subscription->read(frame) && received_count < frame_count) {
         if (frame.payload.empty()) {
           throw std::runtime_error("Received empty data frame");
@@ -605,11 +605,11 @@ TEST_F(DataTrackE2ETest, PreservesUserTimestampEndToEnd) {
   }
   auto subscription = subscribe_result.value();
 
-  std::promise<DataFrame> frame_promise;
+  std::promise<DataTrackFrame> frame_promise;
   auto frame_future = frame_promise.get_future();
   std::thread reader([&]() {
     try {
-      DataFrame frame;
+      DataTrackFrame frame;
       if (!subscription->read(frame)) {
         throw std::runtime_error(
             "Subscription ended before timestamped frame arrived");
@@ -639,7 +639,7 @@ TEST_F(DataTrackE2ETest, PreservesUserTimestampEndToEnd) {
   ASSERT_EQ(frame_status, std::future_status::ready)
       << "Timed out waiting for timestamped frame";
 
-  DataFrame frame;
+  DataTrackFrame frame;
   try {
     frame = frame_future.get();
   } catch (const std::exception &e) {
@@ -692,11 +692,11 @@ TEST_F(DataTrackE2ETest, PublishesAndReceivesEncryptedFramesEndToEnd) {
   }
   auto subscription = subscribe_result.value();
 
-  std::promise<DataFrame> frame_promise;
+  std::promise<DataTrackFrame> frame_promise;
   auto frame_future = frame_promise.get_future();
   std::thread reader([&]() {
     try {
-      DataFrame frame;
+      DataTrackFrame frame;
       if (!subscription->read(frame)) {
         throw std::runtime_error(
             "Subscription ended before an encrypted frame arrived");
@@ -727,7 +727,7 @@ TEST_F(DataTrackE2ETest, PublishesAndReceivesEncryptedFramesEndToEnd) {
   ASSERT_EQ(frame_status, std::future_status::ready)
       << "Timed out waiting for encrypted frame delivery";
 
-  DataFrame frame;
+  DataTrackFrame frame;
   try {
     frame = frame_future.get();
   } catch (const std::exception &e) {
@@ -781,11 +781,11 @@ TEST_F(DataTrackE2ETest, PreservesUserTimestampOnEncryptedDataTrack) {
   }
   auto subscription = subscribe_result.value();
 
-  std::promise<DataFrame> frame_promise;
+  std::promise<DataTrackFrame> frame_promise;
   auto frame_future = frame_promise.get_future();
   std::thread reader([&]() {
     try {
-      DataFrame incoming_frame;
+      DataTrackFrame incoming_frame;
       if (!subscription->read(incoming_frame)) {
         throw std::runtime_error(
             "Subscription ended before timestamped encrypted frame arrived");
@@ -816,7 +816,7 @@ TEST_F(DataTrackE2ETest, PreservesUserTimestampOnEncryptedDataTrack) {
   ASSERT_EQ(frame_status, std::future_status::ready)
       << "Timed out waiting for timestamped encrypted frame";
 
-  DataFrame frame;
+  DataTrackFrame frame;
   try {
     frame = frame_future.get();
   } catch (const std::exception &e) {

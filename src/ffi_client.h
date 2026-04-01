@@ -44,7 +44,7 @@ class FfiResponse;
 class FfiRequest;
 class OwnedTrackPublication;
 class OwnedLocalDataTrack;
-class OwnedDataTrackSubscription;
+class OwnedDataTrackStream;
 class DataStream;
 
 } // namespace proto
@@ -135,7 +135,7 @@ public:
   publishDataTrackAsync(std::uint64_t local_participant_handle,
                         const std::string &track_name);
 
-  Result<proto::OwnedDataTrackSubscription, SubscribeDataTrackError>
+  Result<proto::OwnedDataTrackStream, SubscribeDataTrackError>
   subscribeDataTrack(std::uint64_t track_handle,
                      std::optional<std::uint32_t> buffer_size = std::nullopt);
 

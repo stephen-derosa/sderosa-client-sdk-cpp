@@ -18,7 +18,7 @@
 
 #include "livekit/data_track_error.h"
 #include "livekit/data_track_info.h"
-#include "livekit/data_track_subscription.h"
+#include "livekit/data_track_stream.h"
 #include "livekit/ffi_handle.h"
 #include "livekit/result.h"
 
@@ -44,7 +44,7 @@ class OwnedRemoteDataTrack;
  *   auto sub_result = remoteDataTrack->subscribe();
  *   if (sub_result) {
  *     auto sub = sub_result.value();
- *     DataFrame frame;
+ *     DataTrackFrame frame;
  *     while (sub->read(frame)) {
  *       // process frame
  *     }
@@ -76,11 +76,11 @@ public:
   /**
    * Subscribe to this remote data track.
    *
-   * Returns a DataTrackSubscription that delivers frames via blocking
-   * read(). Destroy the subscription to unsubscribe.
+   * Returns a DataTrackStream that delivers frames via blocking
+   * read(). Destroy the stream to unsubscribe.
    */
-  Result<std::shared_ptr<DataTrackSubscription>, SubscribeDataTrackError>
-  subscribe(const DataTrackSubscription::Options &options = {});
+  Result<std::shared_ptr<DataTrackStream>, SubscribeDataTrackError>
+  subscribe(const DataTrackStream::Options &options = {});
 
 private:
   friend class Room;

@@ -16,8 +16,8 @@
 
 #include "livekit/subscription_thread_dispatcher.h"
 
-#include "livekit/data_frame.h"
-#include "livekit/data_track_subscription.h"
+#include "livekit/data_track_frame.h"
+#include "livekit/data_track_stream.h"
 #include "livekit/lk_log.h"
 #include "livekit/remote_data_track.h"
 #include "livekit/track.h"
@@ -335,8 +335,8 @@ void SubscriptionThreadDispatcher::handleDataTrackUnpublished(
       if (reader->remote_track && reader->remote_track->info().sid == sid) {
         {
           std::lock_guard<std::mutex> sub_guard(reader->sub_mutex);
-          if (reader->subscription) {
-            reader->subscription->close();
+          if (reader->stream) {
+            reader->stream->close();
           }
         }
         if (reader->thread.joinable()) {
@@ -389,8 +389,8 @@ void SubscriptionThreadDispatcher::stopAll() {
     for (auto &[id, reader] : active_data_readers_) {
       {
         std::lock_guard<std::mutex> sub_guard(reader->sub_mutex);
-        if (reader->subscription) {
-          reader->subscription->close();
+        if (reader->stream) {
+          reader->stream->close();
         }
       }
       if (reader->thread.joinable()) {
@@ -589,8 +589,8 @@ std::thread SubscriptionThreadDispatcher::extractDataReaderThreadLocked(
   active_data_readers_.erase(it);
   {
     std::lock_guard<std::mutex> guard(reader->sub_mutex);
-    if (reader->subscription) {
-      reader->subscription->close();
+    if (reader->stream) {
+      reader->stream->close();
     }
   }
   return std::move(reader->thread);
@@ -608,8 +608,8 @@ std::thread SubscriptionThreadDispatcher::extractDataReaderThreadLocked(
       active_data_readers_.erase(it);
       {
         std::lock_guard<std::mutex> guard(reader->sub_mutex);
-        if (reader->subscription) {
-          reader->subscription->close();
+        if (reader->stream) {
+          reader->stream->close();
         }
       }
       return std::move(reader->thread);
@@ -642,7 +642,7 @@ std::thread SubscriptionThreadDispatcher::startDataReaderLocked(
   reader->thread = std::thread([reader, track, cb, identity, track_name]() {
     LK_LOG_INFO("Data reader thread: subscribing to \"{}\" track=\"{}\"",
                 identity, track_name);
-    std::shared_ptr<DataTrackSubscription> subscription;
+    std::shared_ptr<DataTrackStream> stream;
     auto subscribe_result = track->subscribe();
     if (!subscribe_result) {
       const auto &error = subscribe_result.error();
@@ -653,17 +653,17 @@ std::thread SubscriptionThreadDispatcher::startDataReaderLocked(
           error.message);
       return;
     }
-    subscription = subscribe_result.value();
+    stream = subscribe_result.value();
     LK_LOG_INFO("Data reader thread: subscribed to \"{}\" track=\"{}\"",
                 identity, track_name);
 
     {
       std::lock_guard<std::mutex> guard(reader->sub_mutex);
-      reader->subscription = subscription;
+      reader->stream = stream;
     }
 
-    DataFrame frame;
-    while (subscription->read(frame)) {
+    DataTrackFrame frame;
+    while (stream->read(frame)) {
       try {
         cb(frame.payload, frame.user_timestamp);
       } catch (const std::exception &e) {
