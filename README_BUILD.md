@@ -233,6 +233,10 @@ find_package(livekit REQUIRED)
 target_link_libraries(your_target PRIVATE livekit)
 ```
 
+If your code uses the public `LK_LOG_*` macros from `<livekit/lk_log.h>` or
+`<livekit/livekit.h>`, the exported CMake package also provides the required
+`spdlog` dependency transitively.
+
 ### Manual Linking
 
 1. Add include path: `build/include`
@@ -245,6 +249,8 @@ target_link_libraries(your_target PRIVATE livekit)
    - Linux: Deploy `liblivekit_ffi.so` in same directory as your executable
    - macOS: Deploy `liblivekit_ffi.dylib` in same directory as your executable
 4. Link platform-specific system libraries
+5. If your code uses `LK_LOG_*`, also link the matching `spdlog` package when
+   integrating manually without `find_package(LiveKit)`
 
 > **Important**: On Linux/macOS, the `.so`/`.dylib` must be in the same directory as your executable (RPATH is set to `$ORIGIN` / `@executable_path`).
 

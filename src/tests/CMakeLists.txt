@@ -24,6 +24,8 @@ FetchContent_MakeAvailable(googletest)
 enable_testing()
 include(GoogleTest)
 
+set(LIVEKIT_PACKAGE_TEST_CONFIG "$<IF:$<BOOL:${CMAKE_CONFIGURATION_TYPES}>,$<CONFIG>,${CMAKE_BUILD_TYPE}>")
+
 # ============================================================================
 # Integration Tests
 # ============================================================================
@@ -195,3 +197,21 @@ endif()
 if(TARGET livekit_stress_tests)
   add_dependencies(run_all_tests livekit_stress_tests)
 endif()
+
+# ============================================================================
+# Installed package regression tests
+# ============================================================================
+
+set(LIVEKIT_PACKAGE_TEST_SCRIPT "${CMAKE_CURRENT_SOURCE_DIR}/package/verify_livekit_package.cmake")
+
+add_test(NAME livekit_package_exports_spdlog
+  COMMAND ${CMAKE_COMMAND}
+    -DLIVEKIT_SOURCE_DIR=${LIVEKIT_ROOT_DIR}
+    -DLIVEKIT_BINARY_DIR=${CMAKE_BINARY_DIR}
+    -DTEST_CONFIG=${LIVEKIT_PACKAGE_TEST_CONFIG}
+    -P ${LIVEKIT_PACKAGE_TEST_SCRIPT}
+)
+
+set_tests_properties(livekit_package_exports_spdlog PROPERTIES
+  LABELS "package"
+)

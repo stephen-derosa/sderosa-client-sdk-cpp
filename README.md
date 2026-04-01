@@ -239,9 +239,16 @@ On another terminal or computer, start the sender
 
 ## Logging
 
-The SDK uses [spdlog](https://github.com/gabime/spdlog) internally but does
-**not** expose it in public headers. All log output goes through a thin public
-API in `<livekit/logging.h>`.
+The SDK exposes two logging surfaces:
+
+- `<livekit/logging.h>` provides the stable runtime logging API.
+- `<livekit/lk_log.h>` provides `LK_LOG_*` convenience macros for SDK consumers.
+
+The `LK_LOG_*` macros are part of the public C++ surface today and are backed
+by [spdlog](https://github.com/gabime/spdlog). CMake consumers that link
+against `LiveKit::livekit` receive that dependency transitively through the
+exported package. If you bypass the package config and link manually, you must
+also provide the matching `spdlog` dependency yourself.
 
 ### Two-tier filtering
 
