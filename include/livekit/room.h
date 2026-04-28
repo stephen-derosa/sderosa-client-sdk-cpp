@@ -37,6 +37,7 @@ class FfiEvent;
 
 struct E2EEOptions;
 class E2EEManager;
+class EncodedTcpIngest;
 class LocalParticipant;
 class RemoteParticipant;
 
@@ -316,6 +317,7 @@ public:
   void removeOnDataFrameCallback(DataFrameCallbackId id);
 
 private:
+  friend class EncodedTcpIngest;
   friend class RoomCallbackTest;
 
   mutable std::mutex lock_;
