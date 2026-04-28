@@ -23,7 +23,6 @@
 #include <exception>
 #include <iostream>
 #include <optional>
-#include <sstream>
 #include <string>
 #include <thread>
 #include <vector>
@@ -76,10 +75,16 @@ void printUsage(const char *prog) {
 
 std::vector<std::string> splitCommaSeparated(const std::string &text) {
   std::vector<std::string> values;
-  std::stringstream stream(text);
-  std::string value;
-  while (std::getline(stream, value, ',')) {
-    values.push_back(trim(value));
+  std::size_t start = 0;
+  while (start < text.size()) {
+    const std::size_t end = text.find(',', start);
+    const std::size_t count =
+        end == std::string::npos ? std::string::npos : end - start;
+    values.push_back(trim(text.substr(start, count)));
+    if (end == std::string::npos) {
+      break;
+    }
+    start = end + 1;
   }
   return values;
 }

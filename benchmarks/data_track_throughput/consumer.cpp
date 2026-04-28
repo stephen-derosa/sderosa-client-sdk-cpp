@@ -102,6 +102,16 @@ bool parseArgs(int argc, char *argv[], ConsumerOptions &options) {
     }
     return {};
   };
+  auto matchingOutputFlag = [](const std::string &arg) -> const char * {
+    static constexpr const char *kOutputFlags[] = {"--output-dir", "--output",
+                                                   "--ouput"};
+    for (const char *flag : kOutputFlags) {
+      if (arg.rfind(flag, 0) == 0) {
+        return flag;
+      }
+    }
+    return nullptr;
+  };
 
   for (int index = 1; index < argc; ++index) {
     const std::string arg = argv[index];
@@ -113,12 +123,9 @@ bool parseArgs(int argc, char *argv[], ConsumerOptions &options) {
       options.url = readFlagValue("--url", index);
     } else if (arg.rfind("--token", 0) == 0) {
       options.token = readFlagValue("--token", index);
-    } else if (arg.rfind("--output-dir", 0) == 0) {
-      options.output_dir = readFlagValue("--output-dir", index);
-    } else if (arg.rfind("--output", 0) == 0) {
-      options.output_dir = readFlagValue("--output", index);
-    } else if (arg.rfind("--ouput", 0) == 0) {
-      options.output_dir = readFlagValue("--ouput", index);
+    } else if (const char *output_flag = matchingOutputFlag(arg);
+               output_flag != nullptr) {
+      options.output_dir = readFlagValue(output_flag, index);
     } else if (arg.rfind("--track-name", 0) == 0) {
       options.track_name = readFlagValue("--track-name", index);
     } else if (arg.rfind("--quiet-period-ms", 0) == 0) {
@@ -423,7 +430,8 @@ private:
   }
 
   void appendSummaryRow(const json &summary) const {
-    std::ofstream out(summary_csv_path_, std::ios::app);
+    std::ofstream out;
+    out.open(summary_csv_path_, std::ios::app);
     if (!out) {
       throw std::runtime_error("Failed to open summary CSV for append");
     }
@@ -455,7 +463,8 @@ private:
                 return lhs.arrival_time_us < rhs.arrival_time_us;
               });
 
-    std::ofstream out(message_csv_path_, std::ios::app);
+    std::ofstream out;
+    out.open(message_csv_path_, std::ios::app);
     if (!out) {
       throw std::runtime_error("Failed to open message CSV for append");
     }
