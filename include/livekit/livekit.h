@@ -22,7 +22,6 @@
 #include "audio_stream.h"
 #include "build.h"
 #include "e2ee.h"
-#include "encoded_tcp_ingest.h"
 #include "local_audio_track.h"
 #include "local_participant.h"
 #include "local_track_publication.h"

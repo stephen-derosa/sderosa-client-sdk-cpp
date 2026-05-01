@@ -21,7 +21,6 @@
 #include <cstdint>
 #include <functional>
 #include <future>
-#include <iostream>
 #include <memory>
 #include <mutex>
 #include <optional>
@@ -46,12 +45,10 @@ class FfiRequest;
 class OwnedTrackPublication;
 class OwnedLocalDataTrack;
 class OwnedDataTrackStream;
-class OwnedEncodedTcpIngest;
 class DataStream;
 
 } // namespace proto
 
-struct EncodedTcpIngestOptions;
 struct RoomOptions;
 struct TrackPublishOptions;
 
@@ -157,12 +154,6 @@ public:
   sendStreamTrailerAsync(std::uint64_t local_participant_handle,
                          const proto::DataStream::Trailer &trailer,
                          const std::string &sender_identity);
-
-  // Encoded TCP ingest APIs
-  std::future<proto::OwnedEncodedTcpIngest>
-  newEncodedTcpIngestAsync(std::uint64_t room_handle,
-                           const EncodedTcpIngestOptions &options);
-  std::future<void> stopEncodedTcpIngestAsync(std::uint64_t ingest_handle);
 
   // Generic function for sending a request to the Rust FFI.
   // Note: For asynchronous requests, use the dedicated async functions instead
